@@ -1,0 +1,84 @@
+# ExpresoFast - Laboratorio 6 
+
+**Curso:** IF0009 - Desarrollo de Software IV
+**Ciclo:** II-2026
+**Laboratorio:** 6 - Plataforma Full-Stack de Logística "ExpresoFast" (Seguridad JWT, RBAC, DTOs, Bitácora de Auditoría)
+**Estudiante:** Andreé Murillo Sojo
+**Carné:** C4H877
+
+## Requisitos de Entorno
+
+- Java 21+ (proyecto configurado con Java 25 local) y Maven.
+- Spring Boot 4.x con Spring Data JPA, Spring Security y Hibernate.
+- jjwt 0.12.5.
+- Microsoft SQL Server (Developer Edition) y SSMS.
+- Navegador web moderno con DevTools (para el frontend estático).
+
+## Guía de Configuración de Base de Datos
+
+La base de datos `ExpresoFast_C4H877_II2026` ya contiene el esquema del Laboratorio 5
+(`EmpresaLogistica`, `Vehiculo`, `Conductor`, `Envio`). Para dejar el esquema completo del
+Laboratorio 6, ejecute en orden contra esa base de datos (con SSMS o `sqlcmd`):
+
+1. `database/01_schema_lab5.sql` — documentación del esquema base (no reejecutar si ya existe).
+2. `database/02_schema_lab6_extension.sql` — crea `Usuario`, `Rol`, `UsuarioRol` y `BitacoraEnvio`.
+3. `database/03_data_seeds.sql` — inserta los 3 roles RBAC y los usuarios de prueba con su
+   contraseña ya encriptada con BCrypt.
+
+```powershell
+sqlcmd -S localhost,1433 -U sa -P <password> -d ExpresoFast_C4H877_II2026 -i database\02_schema_lab6_extension.sql
+sqlcmd -S localhost,1433 -U sa -P <password> -d ExpresoFast_C4H877_II2026 -i database\03_data_seeds.sql
+```
+
+## Usuarios de Prueba
+
+Contraseña para los tres usuarios: **`Password123!`**
+
+| Username     | Contraseña     | Rol             |
+|--------------|----------------|-----------------|
+| `admin`      | `Password123!` | `ROLE_ADMIN`    |
+| `operador1`  | `Password123!` | `ROLE_OPERADOR` |
+| `conductor1` | `Password123!` | `ROLE_CONDUCTOR`|
+
+## Instrucciones de Ejecución
+
+### Backend
+
+1. Copie `backend/application.properties.template` a
+   `backend/src/main/resources/application.properties` y complete las credenciales de su
+   SQL Server local y una clave `app.jwt.secret` propia (mínimo 32 caracteres).
+2. Desde `backend/`, ejecute:
+
+   ```powershell
+   mvn spring-boot:run
+   ```
+
+   El API queda disponible en `http://localhost:8080`.
+
+### Frontend
+
+El frontend es estático (HTML/CSS/JS puro). Sirva la carpeta `frontend/` con cualquier
+servidor estático, por ejemplo la extensión **Live Server** de VS Code, y abra
+`login.html`. Tras iniciar sesión, la aplicación redirige automáticamente a `index.html`.
+
+## Matriz de Permisos (RBAC)
+
+| Endpoint                          | Método | Roles Permitidos               |
+|------------------------------------|--------|---------------------------------|
+| `/api/auth/login`                  | POST   | Público                        |
+| `/api/envios/optimizados`          | GET    | ADMIN, OPERADOR, CONDUCTOR     |
+| `/api/envios`                      | POST   | ADMIN, OPERADOR                |
+| `/api/envios/{id}/estado`          | PATCH  | ADMIN, CONDUCTOR               |
+| `/api/envios/{id}/bitacora`        | GET    | ADMIN, OPERADOR                |
+| `/api/vehiculos/**`                | ALL    | ADMIN                          |
+
+## Estructura del Repositorio
+
+```
+expresofast-lab6-c4h877/
+├── backend/
+├── database/
+├── frontend/
+├── docs/
+└── README.md
+```
