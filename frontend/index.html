@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpresoFast - Plataforma de Monitoreo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <header class="topbar">
+        <div class="brand">
+            <h1>ExpresoFast</h1>
+            <span>Monitoreo Logístico</span>
+        </div>
+    </header>
+
+    <main class="dashboard-layout">
+
+        <aside class="sidebar">
+
+            <section class="panel">
+                <h2>Registrar Envío</h2>
+                <form id="form-envio">
+                    <div class="field">
+                        <label for="codigoRastreo">Código de Rastreo</label>
+                        <input type="text" id="codigoRastreo" required placeholder="EXP-9901">
+                    </div>
+
+                    <div class="field">
+                        <label for="direccionDestino">Dirección Destino</label>
+                        <input type="text" id="direccionDestino" required placeholder="Paraíso, Cartago">
+                    </div>
+
+                    <div class="field">
+                        <label for="pesoKg">Peso (kg)</label>
+                        <input type="number" id="pesoKg" step="0.01" min="0.1" required placeholder="12.50">
+                    </div>
+
+                    <div class="field">
+                        <label for="costo">Costo (₡)</label>
+                        <input type="number" id="costo" step="0.01" min="0" required placeholder="3500.00">
+                    </div>
+
+                    <div class="field">
+                        <label for="vehiculoId">ID Vehículo</label>
+                        <input type="number" id="vehiculoId" min="1" required placeholder="1">
+                    </div>
+
+                    <div class="field">
+                        <label for="conductorId">ID Conductor</label>
+                        <input type="number" id="conductorId" min="1" required placeholder="1">
+                    </div>
+
+                    <button type="submit" class="btn btn-submit">Crear Envío Express</button>
+                </form>
+            </section>
+
+            <section class="panel">
+                <h3>Filtrar por Estado</h3>
+                <nav class="filter-nav">
+                    <button class="filter-btn" type="button" onclick="filtrar('TODOS')">Todos</button>
+                    <button class="filter-btn" type="button" onclick="filtrar('PENDIENTE')">Pendientes</button>
+                    <button class="filter-btn" type="button" onclick="filtrar('EN_TRANSITO')">En Tránsito</button>
+                    <button class="filter-btn" type="button" onclick="filtrar('ENTREGADO')">Entregados</button>
+                </nav>
+            </section>
+
+        </aside>
+
+        <section class="content-area">
+            <div class="content-header">
+                <h2>Envíos en Monitoreo</h2>
+                <span id="contador-envios" class="badge-counter">0 envíos</span>
+            </div>
+
+            <div id="envios-grid" class="grid-container">
+                <!-- Renderizado dinámico desde app.js -->
+            </div>
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
