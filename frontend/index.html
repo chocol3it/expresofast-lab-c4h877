@@ -15,13 +15,20 @@
             <h1>ExpresoFast</h1>
             <span>Monitoreo Logístico</span>
         </div>
+        <div class="session-info">
+            <div class="session-user">
+                <strong id="session-username">-</strong>
+                <span class="role-badge" id="session-role">-</span>
+            </div>
+            <button type="button" class="btn btn-logout" onclick="logout()">Salir</button>
+        </div>
     </header>
 
     <main class="dashboard-layout">
 
         <aside class="sidebar">
 
-            <section class="panel">
+            <section class="panel" id="panel-crear-envio">
                 <h2>Registrar Envío</h2>
                 <form id="form-envio">
                     <div class="field">
@@ -68,6 +75,30 @@
                 </nav>
             </section>
 
+            <section class="panel" id="panel-flota">
+                <h3>Flota de Vehículos</h3>
+                <div id="flota-lista" class="flota-list"></div>
+                <form id="form-vehiculo">
+                    <div class="field">
+                        <label for="v-placa">Placa</label>
+                        <input type="text" id="v-placa" required placeholder="SJB-123">
+                    </div>
+                    <div class="field">
+                        <label for="v-capacidad">Capacidad (kg)</label>
+                        <input type="number" id="v-capacidad" step="0.01" min="0.1" required placeholder="500">
+                    </div>
+                    <div class="field">
+                        <label for="v-estado">Estado</label>
+                        <input type="text" id="v-estado" required placeholder="DISPONIBLE">
+                    </div>
+                    <div class="field">
+                        <label for="v-empresaId">ID Empresa</label>
+                        <input type="number" id="v-empresaId" min="1" required placeholder="1">
+                    </div>
+                    <button type="submit" class="btn btn-submit">Agregar Vehículo</button>
+                </form>
+            </section>
+
         </aside>
 
         <section class="content-area">
@@ -82,6 +113,28 @@
         </section>
 
     </main>
+
+    <div id="modal-bitacora" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Bitácora de Auditoría</h2>
+                <button type="button" class="modal-close" onclick="cerrarBitacora()">&times;</button>
+            </div>
+
+            <div class="modal-filtros">
+                <div class="field">
+                    <label for="bitacora-desde">Desde</label>
+                    <input type="date" id="bitacora-desde" onchange="renderBitacora()">
+                </div>
+                <div class="field">
+                    <label for="bitacora-hasta">Hasta</label>
+                    <input type="date" id="bitacora-hasta" onchange="renderBitacora()">
+                </div>
+            </div>
+
+            <div id="bitacora-lista" class="bitacora-list"></div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
