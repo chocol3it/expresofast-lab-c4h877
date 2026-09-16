@@ -8,15 +8,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.business.EnvioService;
-import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Envio;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.BitacoraResponseDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CambioEstadoDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioRequestDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
+
+import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
-
 
 @RestController
 @RequestMapping("/api/envios")
@@ -30,24 +33,23 @@ public class EnvioController {
     }
 
     @GetMapping("/optimizados")
-    public ResponseEntity<List<Envio>> getOptimizedShipments() {
-        List<Envio> optimizedShipments = envioService.getOptimizedShipments();
-        return ResponseEntity.ok(optimizedShipments);
+    public ResponseEntity<List<EnvioResponseDTO>> getOptimizedShipments() {
+        return ResponseEntity.ok(envioService.getOptimizedShipments());
     }
 
     @PostMapping
-    public ResponseEntity<Envio> registrarEnvio(@RequestBody Envio envio) {
-        Envio nuevoEnvio = envioService.crearEnvio(envio);
-        return ResponseEntity.ok(nuevoEnvio);
+    public ResponseEntity<EnvioResponseDTO> registrarEnvio(@Valid @RequestBody EnvioRequestDTO envioDTO) {
+        return ResponseEntity.ok(envioService.crearEnvio(envioDTO));
     }
 
     @PatchMapping("/{id}/estado")
-    public ResponseEntity<Envio> actualizarEstadoEnvio(@PathVariable Integer id, @RequestBody CambioEstadoRequest request) {
-        Envio envioActualizado = envioService.actualizarEstado(id, request.estadoEnvio());
-        return ResponseEntity.ok(envioActualizado);
+    public ResponseEntity<EnvioResponseDTO> actualizarEstadoEnvio(@PathVariable Integer id,
+            @Valid @RequestBody CambioEstadoDTO cambioDTO) {
+        return ResponseEntity.ok(envioService.actualizarEstado(id, cambioDTO));
     }
 
-    public record CambioEstadoRequest(String estadoEnvio) {
+    @GetMapping("/{id}/bitacora")
+    public ResponseEntity<List<BitacoraResponseDTO>> obtenerBitacora(@PathVariable Integer id) {
+        return ResponseEntity.ok(envioService.obtenerBitacora(id));
     }
-
 }
