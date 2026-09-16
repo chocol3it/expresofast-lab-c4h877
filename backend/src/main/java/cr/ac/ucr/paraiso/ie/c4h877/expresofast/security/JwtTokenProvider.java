@@ -34,6 +34,7 @@ public class JwtTokenProvider {
         Date expiracion = new Date(ahora.getTime() + jwtExpirationInMs);
         String roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
+                .filter(authority -> authority.startsWith("ROLE_"))
                 .collect(Collectors.joining(","));
 
         return Jwts.builder()

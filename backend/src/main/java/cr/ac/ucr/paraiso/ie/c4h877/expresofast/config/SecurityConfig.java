@@ -1,5 +1,6 @@
 package cr.ac.ucr.paraiso.ie.c4h877.expresofast.config;
 
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.security.JwtAccessDeniedHandler;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.security.JwtAuthenticationEntryPoint;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.security.JwtAuthenticationFilter;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.security.JwtTokenProvider;
@@ -28,13 +29,16 @@ public class SecurityConfig {
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService userDetailsService;
     private final JwtAuthenticationEntryPoint authenticationEntryPoint;
+    private final JwtAccessDeniedHandler accessDeniedHandler;
 
     public SecurityConfig(JwtTokenProvider tokenProvider,
             CustomUserDetailsService userDetailsService,
-            JwtAuthenticationEntryPoint authenticationEntryPoint) {
+            JwtAuthenticationEntryPoint authenticationEntryPoint,
+            JwtAccessDeniedHandler accessDeniedHandler) {
         this.tokenProvider = tokenProvider;
         this.userDetailsService = userDetailsService;
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -55,7 +59,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(
                         SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(authenticationEntryPoint))
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()

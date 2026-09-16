@@ -29,6 +29,7 @@ public class AuthService {
         String token = tokenProvider.generarToken(authentication);
         List<String> roles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
+                .filter(authority -> authority.startsWith("ROLE_"))
                 .toList();
 
         return new AuthResponseDTO(token, authentication.getName(), roles,
