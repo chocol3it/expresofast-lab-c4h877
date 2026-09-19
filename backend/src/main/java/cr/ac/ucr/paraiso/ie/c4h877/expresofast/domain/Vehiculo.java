@@ -27,6 +27,10 @@ public class Vehiculo {
     @JoinColumn(name = "empresa_id", nullable = false)
     private EmpresaLogistica empresa;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conductor_id")
+    private Conductor conductor;
+
     @JsonIgnore
     @OneToMany(mappedBy = "vehiculo")
     private List<Envio> envios;
@@ -69,6 +73,14 @@ public class Vehiculo {
 
     public void setEmpresa(EmpresaLogistica empresa) {
         this.empresa = empresa;
+    }
+
+    public Conductor getConductor() {
+        return conductor;
+    }
+
+    public void setConductor(Conductor conductor) {
+        this.conductor = conductor;
     }
 
     public List<Envio> getEnvios() {

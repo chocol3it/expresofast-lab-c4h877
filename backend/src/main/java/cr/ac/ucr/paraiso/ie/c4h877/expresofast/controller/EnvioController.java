@@ -3,6 +3,7 @@ package cr.ac.ucr.paraiso.ie.c4h877.expresofast.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,9 +38,14 @@ public class EnvioController {
         return ResponseEntity.ok(envioService.getOptimizedShipments());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<EnvioResponseDTO> obtenerEnvio(@PathVariable Integer id) {
+        return ResponseEntity.ok(envioService.obtenerEnvio(id));
+    }
+
     @PostMapping
     public ResponseEntity<EnvioResponseDTO> registrarEnvio(@Valid @RequestBody EnvioRequestDTO envioDTO) {
-        return ResponseEntity.ok(envioService.crearEnvio(envioDTO));
+        return ResponseEntity.status(HttpStatus.CREATED).body(envioService.crearEnvio(envioDTO));
     }
 
     @PatchMapping("/{id}/estado")

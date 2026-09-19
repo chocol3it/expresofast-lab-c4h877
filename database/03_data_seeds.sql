@@ -29,6 +29,7 @@ WHERE u.username = 'admin' AND r.nombre_rol = 'ROLE_ADMIN'
       SELECT 1 FROM UsuarioRol ur WHERE ur.usuario_id = u.usuario_id AND ur.rol_id = r.rol_id
   );
 
+
 INSERT INTO UsuarioRol (usuario_id, rol_id)
 SELECT u.usuario_id, r.rol_id
 FROM Usuario u, Rol r
