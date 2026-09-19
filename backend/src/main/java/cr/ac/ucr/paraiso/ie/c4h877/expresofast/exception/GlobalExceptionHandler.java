@@ -37,6 +37,13 @@ public class GlobalExceptionHandler {
                 exception.getMessage(), request);
     }
 
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponseDTO> handleDuplicateResource(
+            DuplicateResourceException exception, HttpServletRequest request) {
+        return response("Recurso Duplicado", HttpStatus.CONFLICT,
+                exception.getMessage(), request);
+    }
+
     @ExceptionHandler(InvalidStateTransitionException.class)
     public ResponseEntity<ErrorResponseDTO> handleInvalidStateTransition(
             InvalidStateTransitionException exception, HttpServletRequest request) {

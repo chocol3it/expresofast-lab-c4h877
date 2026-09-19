@@ -20,6 +20,7 @@ CREATE TABLE Vehiculo (
     capacidad_kg DECIMAL(10,2) NOT NULL,
     estado VARCHAR(20) NOT NULL CHECK (estado IN ('DISPONIBLE', 'EN_RUTA', 'MANTENIMIENTO')),
     empresa_id INT NOT NULL,
+    conductor_id INT NULL,
     CONSTRAINT FK_Vehiculo_Empresa FOREIGN KEY (empresa_id) REFERENCES EmpresaLogistica(empresa_id)
 );
 GO
@@ -33,6 +34,11 @@ CREATE TABLE Conductor (
     telefono VARCHAR(20) NOT NULL,
     estado VARCHAR(20) NOT NULL CHECK (estado IN ('ACTIVO', 'INACTIVO'))
 );
+GO
+
+ALTER TABLE Vehiculo
+ADD CONSTRAINT FK_Vehiculo_Conductor
+FOREIGN KEY (conductor_id) REFERENCES Conductor(conductor_id);
 GO
 
 -- 4. Tabla Envio

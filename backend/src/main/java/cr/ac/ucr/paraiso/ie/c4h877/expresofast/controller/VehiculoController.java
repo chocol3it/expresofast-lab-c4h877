@@ -1,8 +1,7 @@
 package cr.ac.ucr.paraiso.ie.c4h877.expresofast.controller;
 
-import cr.ac.ucr.paraiso.ie.c4h877.expresofast.data.VehiculoRepository;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.business.VehiculoService;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Vehiculo;
-import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.ResourceNotFoundException;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -20,46 +19,35 @@ import org.springframework.web.bind.annotation.RestController;
 @CrossOrigin(origins = "*")
 public class VehiculoController {
 
-    private final VehiculoRepository vehiculoRepository;
+    private final VehiculoService vehiculoService;
 
-    public VehiculoController(VehiculoRepository vehiculoRepository) {
-        this.vehiculoRepository = vehiculoRepository;
+    public VehiculoController(VehiculoService vehiculoService) {
+        this.vehiculoService = vehiculoService;
     }
 
     @GetMapping
     public ResponseEntity<List<Vehiculo>> listar() {
-        return ResponseEntity.ok(vehiculoRepository.findAll());
+        return ResponseEntity.ok(vehiculoService.listar());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Vehiculo> obtener(@PathVariable Integer id) {
-        Vehiculo vehiculo = vehiculoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado"));
-        return ResponseEntity.ok(vehiculo);
+        return ResponseEntity.ok(vehiculoService.obtener(id));
     }
 
     @PostMapping
     public ResponseEntity<Vehiculo> crear(@RequestBody Vehiculo vehiculo) {
-        return ResponseEntity.ok(vehiculoRepository.save(vehiculo));
+        return ResponseEntity.ok(vehiculoService.registrar(vehiculo));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Vehiculo> actualizar(@PathVariable Integer id, @RequestBody Vehiculo datos) {
-        Vehiculo vehiculo = vehiculoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehículo no encontrado"));
-        vehiculo.setPlaca(datos.getPlaca());
-        vehiculo.setCapacidadKg(datos.getCapacidadKg());
-        vehiculo.setEstado(datos.getEstado());
-        vehiculo.setEmpresa(datos.getEmpresa());
-        return ResponseEntity.ok(vehiculoRepository.save(vehiculo));
+        return ResponseEntity.ok(vehiculoService.actualizar(id, datos));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
-        if (!vehiculoRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Vehículo no encontrado");
-        }
-        vehiculoRepository.deleteById(id);
+        vehiculoService.eliminar(id);
         return ResponseEntity.noContent().build();
     }
 }
