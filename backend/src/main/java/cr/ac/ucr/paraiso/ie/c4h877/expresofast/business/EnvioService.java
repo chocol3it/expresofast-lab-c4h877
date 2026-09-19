@@ -55,6 +55,14 @@ public class EnvioService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public EnvioResponseDTO obtenerEnvio(Integer id) {
+        Envio envio = envioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Envío con ID: " + id + " no encontrado"));
+        return toResponseDTO(envio);
+    }
+
     @Transactional
     public EnvioResponseDTO crearEnvio(EnvioRequestDTO envioDTO) {
 
