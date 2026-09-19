@@ -138,6 +138,43 @@ public class EnvioService {
         return envioRepository.updateEstadoByVehiculoId(nuevoEstado.trim(), vehiculoId);
     }
 
+    public double calcularTarifa(double pesoKg, double distanciaKm) {
+        double tarifa = 1000.0 + (100.0 * pesoKg) + (100.0 * distanciaKm);
+
+        if (pesoKg >= 100.0) {
+            tarifa += 750.0;
+        }
+
+        return tarifa;
+    }
+
+    @Transactional
+    public Envio cancelarEnvio(Integer envioId) {
+        Envio envio = envioRepository.findById(envioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Envío con ID: " + envioId + " no encontrado"));
+
+        if (envio.getEstadoEnvio().equals("EN_TRANSITO") || envio.getEstadoEnvio().equals("ENTREGADO")) {
+            throw new InvalidStateTransitionException(
+                    "No se puede cancelar un envío que ya está en tránsito o entregado.");
+        } else {
+
+            Usuario usuarioActuante = usuarioActual();
+
+            BitacoraEnvio bitacora = new BitacoraEnvio();
+            bitacora.setEnvio(envio);
+            bitacora.setEstadoAnterior(envio.getEstadoEnvio());
+            bitacora.setEstadoNuevo("CANCELADO");
+            bitacora.setFechaCambio(LocalDateTime.now());
+            bitacora.setUsuario(usuarioActuante);
+            bitacora.setObservaciones("Cancelación del envío");
+            bitacoraEnvioRepository.save(bitacora);
+
+            envio.setEstadoEnvio("CANCELADO");
+
+            return envioRepository.save(envio);
+        }
+    }
+
     private Usuario usuarioActual() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return usuarioRepository.findByUsername(authentication.getName())

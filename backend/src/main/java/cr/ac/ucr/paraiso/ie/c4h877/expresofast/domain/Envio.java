@@ -35,6 +35,22 @@ public class Envio extends AuditableEntity {
     @JoinColumn(name = "conductor_id", nullable = false)
     private Conductor conductor;
 
+
+    public Envio(Integer id, String codigoRastreo, String direccionDestino, BigDecimal pesoKg, BigDecimal costo,
+            String estadoEnvio, Vehiculo vehiculo, Conductor conductor) {
+        this.id = id;
+        this.codigoRastreo = codigoRastreo;
+        this.direccionDestino = direccionDestino;
+        this.pesoKg = pesoKg;
+        this.costo = costo;
+        this.estadoEnvio = estadoEnvio;
+        this.vehiculo = vehiculo;
+        this.conductor = conductor;
+    }
+
+    public Envio() {
+    }
+
     public Integer getId() {
         return id;
     }
