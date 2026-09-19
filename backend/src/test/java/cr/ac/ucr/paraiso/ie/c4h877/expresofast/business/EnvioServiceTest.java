@@ -66,76 +66,6 @@ public class EnvioServiceTest {
     }
 
     @Test
-    void testCancelarEnvioEnTransitoLanzaExcepcion() {
-
-        Envio envio = new Envio(
-                1,
-                "ABC123",
-                "Paraiso, Cartago",
-                new BigDecimal("5.00"),
-                new BigDecimal("10.00"),
-                "EN_TRANSITO",
-                null,
-                null);
-
-        when(envioRepository.findById(1)).thenReturn(Optional.of(envio));
-
-        assertThrows(InvalidStateTransitionException.class,
-                () -> envioService.cancelarEnvio(1));
-
-    }
-
-    @Test
-    void testCancelarEnvioEnvioPendienteCambiaEstadoACancelado() {
-        Envio envio = new Envio(
-                1,
-                "ABC123",
-                "Paraiso, Cartago",
-                new BigDecimal("5.00"),
-                new BigDecimal("10.00"),
-                "PENDIENTE",
-                null,
-                null);
-        Usuario usuario = new Usuario();
-        Authentication authentication = mock(Authentication.class);
-
-        when(envioRepository.findById(1)).thenReturn(Optional.of(envio));
-        when(authentication.getName()).thenReturn("operador1");
-        when(usuarioRepository.findByUsername("operador1")).thenReturn(Optional.of(usuario));
-        when(envioRepository.save(envio)).thenReturn(envio);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        Envio resultado = envioService.cancelarEnvio(1);
-
-        assertEquals("CANCELADO", resultado.getEstadoEnvio());
-        verify(bitacoraEnvioRepository).save(org.mockito.ArgumentMatchers.any());
-        verify(envioRepository).save(envio);
-    }
-
-    @Test
-    void crearEnvio_VehiculoSinCapacidad_LanzaExcepcion() {
-        EnvioRequestDTO solicitud = new EnvioRequestDTO();
-        solicitud.setCodigoRastreo("EXP-1234");
-        solicitud.setDireccionDestino("Paraiso, Cartago");
-        solicitud.setPesoKg(new BigDecimal("11.00"));
-        solicitud.setCosto(new BigDecimal("3500.00"));
-        solicitud.setVehiculoId(1);
-        solicitud.setConductorId(1);
-
-        Vehiculo vehiculo = new Vehiculo();
-        vehiculo.setCapacidadKg(new BigDecimal("10.00"));
-        Conductor conductor = new Conductor();
-
-        when(vehiculoRepository.findById(1)).thenReturn(Optional.of(vehiculo));
-        when(conductorRepository.findById(1)).thenReturn(Optional.of(conductor));
-
-        assertThrows(IllegalArgumentException.class,
-                () -> envioService.crearEnvio(solicitud));
-
-        verify(envioRepository, never()).save(org.mockito.ArgumentMatchers.any(Envio.class));
-    }
-
-    @Test
     void crearEnvio_DatosValidos_RetornaEnvioDTO() {
         EnvioRequestDTO solicitud = new EnvioRequestDTO();
         solicitud.setCodigoRastreo("EXP-1234");
@@ -186,6 +116,29 @@ public class EnvioServiceTest {
     }
 
     @Test
+    void crearEnvio_VehiculoSinCapacidad_LanzaExcepcion() {
+        EnvioRequestDTO solicitud = new EnvioRequestDTO();
+        solicitud.setCodigoRastreo("EXP-1234");
+        solicitud.setDireccionDestino("Paraiso, Cartago");
+        solicitud.setPesoKg(new BigDecimal("11.00"));
+        solicitud.setCosto(new BigDecimal("3500.00"));
+        solicitud.setVehiculoId(1);
+        solicitud.setConductorId(1);
+
+        Vehiculo vehiculo = new Vehiculo();
+        vehiculo.setCapacidadKg(new BigDecimal("10.00"));
+        Conductor conductor = new Conductor();
+
+        when(vehiculoRepository.findById(1)).thenReturn(Optional.of(vehiculo));
+        when(conductorRepository.findById(1)).thenReturn(Optional.of(conductor));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> envioService.crearEnvio(solicitud));
+
+        verify(envioRepository, never()).save(org.mockito.ArgumentMatchers.any(Envio.class));
+    }
+
+    @Test
     void actualizarEstado_TransicionInvalida_LanzaExcepcion() {
         Envio envio = new Envio(
                 1,
@@ -211,8 +164,58 @@ public class EnvioServiceTest {
     }
 
     @Test
-    void cancelarEnvio_EnvioPendiente_RegistraBitacoraCorrectamente() {
+    void cancelarEnvio_EnvioEnTransito_LanzaExcepcion() {
 
+        Envio envio = new Envio(
+                1,
+                "ABC123",
+                "Paraiso, Cartago",
+                new BigDecimal("5.00"),
+                new BigDecimal("10.00"),
+                "EN_TRANSITO",
+                null,
+                null);
+
+        when(envioRepository.findById(1)).thenReturn(Optional.of(envio));
+
+        assertThrows(InvalidStateTransitionException.class,
+                () -> envioService.cancelarEnvio(1));
+
+    }
+
+
+    //Ignorar, pruebas de practica
+    @Test
+    void testCancelarEnvioEnvioPendienteCambiaEstadoACancelado() {
+        Envio envio = new Envio(
+                1,
+                "ABC123",
+                "Paraiso, Cartago",
+                new BigDecimal("5.00"),
+                new BigDecimal("10.00"),
+                "PENDIENTE",
+                null,
+                null);
+        Usuario usuario = new Usuario();
+        Authentication authentication = mock(Authentication.class);
+
+        when(envioRepository.findById(1)).thenReturn(Optional.of(envio));
+        when(authentication.getName()).thenReturn("operador1");
+        when(usuarioRepository.findByUsername("operador1")).thenReturn(Optional.of(usuario));
+        when(envioRepository.save(envio)).thenReturn(envio);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        Envio resultado = envioService.cancelarEnvio(1);
+
+        assertEquals("CANCELADO", resultado.getEstadoEnvio());
+        verify(bitacoraEnvioRepository).save(org.mockito.ArgumentMatchers.any());
+        verify(envioRepository).save(envio);
+    }
+
+    
+    @Test 
+    void cancelarEnvio_EnvioPendiente_RegistraBitacoraCorrectamente(){
+        
         Envio envio = new Envio(
                 1,
                 "EXP-1234",

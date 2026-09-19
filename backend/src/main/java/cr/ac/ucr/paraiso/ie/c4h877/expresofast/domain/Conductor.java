@@ -25,6 +25,9 @@ public class Conductor {
     @Column(nullable = false, length = 20)
     private String telefono;
 
+    @Column(nullable = false, length = 20)
+    private String estado;
+
     @JsonIgnore
     @OneToMany(mappedBy = "conductor")
     private List<Envio> envios;
@@ -67,6 +70,14 @@ public class Conductor {
 
     public void setTelefono(String telefono) {
         this.telefono = telefono;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 
     public List<Envio> getEnvios() {

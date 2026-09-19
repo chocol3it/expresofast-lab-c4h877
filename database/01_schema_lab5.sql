@@ -30,7 +30,8 @@ CREATE TABLE Conductor (
     nombre VARCHAR(50) NOT NULL,
     apellidos VARCHAR(50) NOT NULL,
     licencia VARCHAR(20) NOT NULL UNIQUE,
-    telefono VARCHAR(20) NOT NULL
+    telefono VARCHAR(20) NOT NULL,
+    estado VARCHAR(20) NOT NULL CHECK (estado IN ('ACTIVO', 'INACTIVO'))
 );
 GO
 
@@ -59,9 +60,9 @@ INSERT INTO Vehiculo (placa, capacidad_kg, estado, empresa_id)
 VALUES ('102938', 500.00, 'DISPONIBLE', 1),
        ('887766', 1200.00, 'DISPONIBLE', 1);
 
-INSERT INTO Conductor (nombre, apellidos, licencia, telefono)
-VALUES ('Carlos', 'Mora V.', 'B1-99882', '8888-1122'),
-       ('Laura', 'Rojas S.', 'B2-33441', '8777-3344');
+INSERT INTO Conductor (nombre, apellidos, licencia, telefono, estado)
+VALUES ('Carlos', 'Mora V.', 'B1-99882', '8888-1122', 'ACTIVO'),
+       ('Laura', 'Rojas S.', 'B2-33441', '8777-3344', 'ACTIVO');
 GO
 
 USE ExpresoFast_C4H877_II2026;
