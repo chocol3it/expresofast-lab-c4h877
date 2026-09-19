@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -34,10 +35,12 @@ import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Conductor;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Envio;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Usuario;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Vehiculo;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.BitacoraResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CambioEstadoDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioRequestDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.InvalidStateTransitionException;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.ResourceNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 public class EnvioServiceTest {
@@ -263,5 +266,140 @@ public class EnvioServiceTest {
         double tarifaCalculada = envioService.calcularTarifa(pesoKg, distanciaKm);
 
         assertEquals(tarifaEsperada, tarifaCalculada, 0.01);
+    }
+
+    @Test
+    void obtenerEnvio_Existente_RetornaDTO() {
+        Vehiculo vehiculo = new Vehiculo();
+        vehiculo.setPlaca("102938");
+        Conductor conductor = new Conductor();
+        conductor.setNombre("Carlos");
+        conductor.setApellidos("Mora V.");
+
+        Envio envio = new Envio(1, "EXP-1234", "Paraiso, Cartago",
+                new BigDecimal("5.00"), new BigDecimal("3500.00"), "PENDIENTE", vehiculo, conductor);
+
+        when(envioRepository.findById(1)).thenReturn(Optional.of(envio));
+
+        EnvioResponseDTO resultado = envioService.obtenerEnvio(1);
+
+        assertEquals("EXP-1234", resultado.getCodigoRastreo());
+        assertEquals("102938", resultado.getPlacaVehiculo());
+        assertEquals("Carlos Mora V.", resultado.getNombreConductor());
+    }
+
+    @Test
+    void obtenerEnvio_Inexistente_LanzaExcepcion() {
+        when(envioRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> envioService.obtenerEnvio(99));
+    }
+
+    @Test
+    void crearEnvio_VehiculoInexistente_LanzaExcepcion() {
+        EnvioRequestDTO solicitud = new EnvioRequestDTO();
+        solicitud.setVehiculoId(1);
+        solicitud.setConductorId(1);
+
+        when(vehiculoRepository.findById(1)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> envioService.crearEnvio(solicitud));
+
+        verify(envioRepository, never()).save(any(Envio.class));
+    }
+
+    @Test
+    void crearEnvio_ConductorInexistente_LanzaExcepcion() {
+        EnvioRequestDTO solicitud = new EnvioRequestDTO();
+        solicitud.setVehiculoId(1);
+        solicitud.setConductorId(1);
+
+        when(vehiculoRepository.findById(1)).thenReturn(Optional.of(new Vehiculo()));
+        when(conductorRepository.findById(1)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> envioService.crearEnvio(solicitud));
+
+        verify(envioRepository, never()).save(any(Envio.class));
+    }
+
+    @Test
+    void obtenerBitacora_EnvioExistente_RetornaLista() {
+        Usuario usuario = new Usuario();
+        usuario.setUsername("operador1");
+
+        BitacoraEnvio bitacora = new BitacoraEnvio();
+        bitacora.setId(1);
+        bitacora.setEstadoAnterior("PENDIENTE");
+        bitacora.setEstadoNuevo("CANCELADO");
+        bitacora.setUsuario(usuario);
+
+        when(envioRepository.existsById(1)).thenReturn(true);
+        when(bitacoraEnvioRepository.findByEnvio_IdOrderByFechaCambioDesc(1))
+                .thenReturn(List.of(bitacora));
+
+        List<BitacoraResponseDTO> resultado = envioService.obtenerBitacora(1);
+
+        assertEquals(1, resultado.size());
+        assertEquals("CANCELADO", resultado.get(0).getEstadoNuevo());
+        assertEquals("operador1", resultado.get(0).getUsuario());
+    }
+
+    @Test
+    void obtenerBitacora_EnvioInexistente_LanzaExcepcion() {
+        when(envioRepository.existsById(99)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> envioService.obtenerBitacora(99));
+    }
+
+    @Test
+    void actualizarEstadoPorVehiculo_VehiculoIdNulo_LanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class,
+                () -> envioService.actualizarEstadoPorVehiculo(null, "EN_TRANSITO"));
+    }
+
+    @Test
+    void actualizarEstadoPorVehiculo_EstadoVacio_LanzaExcepcion() {
+        assertThrows(IllegalArgumentException.class,
+                () -> envioService.actualizarEstadoPorVehiculo(1, "  "));
+    }
+
+    @Test
+    void actualizarEstadoPorVehiculo_DatosValidos_RetornaFilasActualizadas() {
+        when(envioRepository.updateEstadoByVehiculoId("EN_TRANSITO", 1)).thenReturn(3);
+
+        int filas = envioService.actualizarEstadoPorVehiculo(1, "EN_TRANSITO");
+
+        assertEquals(3, filas);
+    }
+
+    @Test
+    void cancelarEnvio_EnvioInexistente_LanzaExcepcion() {
+        when(envioRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> envioService.cancelarEnvio(99));
+    }
+
+    @Test
+    void getOptimizedShipments_RetornaListaDTO() {
+        Vehiculo vehiculo = new Vehiculo();
+        vehiculo.setPlaca("102938");
+        Conductor conductor = new Conductor();
+        conductor.setNombre("Carlos");
+        conductor.setApellidos("Mora V.");
+
+        Envio envio = new Envio(1, "EXP-1234", "Paraiso, Cartago",
+                new BigDecimal("5.00"), new BigDecimal("3500.00"), "PENDIENTE", vehiculo, conductor);
+
+        when(envioRepository.findAllOptimized()).thenReturn(List.of(envio));
+
+        List<EnvioResponseDTO> resultado = envioService.getOptimizedShipments();
+
+        assertEquals(1, resultado.size());
+        assertEquals("EXP-1234", resultado.get(0).getCodigoRastreo());
     }
 }
