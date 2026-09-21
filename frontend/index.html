@@ -4,137 +4,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExpresoFast - Plataforma de Monitoreo</title>
+    <title>ExpresoFast - Iniciar Sesión</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
+<body class="login-page">
 
-    <header class="topbar">
-        <div class="brand">
-            <h1>ExpresoFast</h1>
-            <span>Monitoreo Logístico</span>
-        </div>
-        <div class="session-info">
-            <div class="session-user">
-                <strong id="session-username">-</strong>
-                <span class="role-badge" id="session-role">-</span>
-            </div>
-            <button type="button" class="btn btn-logout" onclick="logout()">Salir</button>
-        </div>
+    <header class="login-header">
+        <h1>ExpresoFast</h1>
+        <p>Consola de Operación Logística</p>
     </header>
 
-    <main class="dashboard-layout">
+    <main class="login-main">
+        <section class="login-card" aria-labelledby="loginTitulo">
+            <h2 id="loginTitulo">Iniciar sesión</h2>
+            <p class="subtitle">Ingrese sus credenciales para acceder a la consola.</p>
 
-        <aside class="sidebar">
+            <p id="loginError" class="alert alert-error hidden" role="alert" aria-live="polite"></p>
 
-            <section class="panel" id="panel-crear-envio">
-                <h2>Registrar Envío</h2>
-                <form id="form-envio">
-                    <div class="field">
-                        <label for="codigoRastreo">Código de Rastreo</label>
-                        <input type="text" id="codigoRastreo" required placeholder="EXP-9901">
-                    </div>
+            <form id="loginForm">
+                <p class="field">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" name="username" required autocomplete="username"
+                        placeholder="admin">
+                </p>
 
-                    <div class="field">
-                        <label for="direccionDestino">Dirección Destino</label>
-                        <input type="text" id="direccionDestino" required placeholder="Paraíso, Cartago">
-                    </div>
+                <p class="field">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password"
+                        placeholder="••••••••">
+                </p>
 
-                    <div class="field">
-                        <label for="pesoKg">Peso (kg)</label>
-                        <input type="number" id="pesoKg" step="0.01" min="0.1" required placeholder="12.50">
-                    </div>
-
-                    <div class="field">
-                        <label for="costo">Costo (₡)</label>
-                        <input type="number" id="costo" step="0.01" min="0" required placeholder="3500.00">
-                    </div>
-
-                    <div class="field">
-                        <label for="vehiculoId">ID Vehículo</label>
-                        <input type="number" id="vehiculoId" min="1" required placeholder="1">
-                    </div>
-
-                    <div class="field">
-                        <label for="conductorId">ID Conductor</label>
-                        <input type="number" id="conductorId" min="1" required placeholder="1">
-                    </div>
-
-                    <button type="submit" class="btn btn-submit">Crear Envío Express</button>
-                </form>
-            </section>
-
-            <section class="panel">
-                <h3>Filtrar por Estado</h3>
-                <nav class="filter-nav">
-                    <button class="filter-btn" type="button" onclick="filtrar('TODOS')">Todos</button>
-                    <button class="filter-btn" type="button" onclick="filtrar('PENDIENTE')">Pendientes</button>
-                    <button class="filter-btn" type="button" onclick="filtrar('EN_TRANSITO')">En Tránsito</button>
-                    <button class="filter-btn" type="button" onclick="filtrar('ENTREGADO')">Entregados</button>
-                </nav>
-            </section>
-
-            <section class="panel" id="panel-flota">
-                <h3>Flota de Vehículos</h3>
-                <div id="flota-lista" class="flota-list"></div>
-                <form id="form-vehiculo">
-                    <div class="field">
-                        <label for="v-placa">Placa</label>
-                        <input type="text" id="v-placa" required placeholder="SJB-123">
-                    </div>
-                    <div class="field">
-                        <label for="v-capacidad">Capacidad (kg)</label>
-                        <input type="number" id="v-capacidad" step="0.01" min="0.1" required placeholder="500">
-                    </div>
-                    <div class="field">
-                        <label for="v-estado">Estado</label>
-                        <input type="text" id="v-estado" required placeholder="DISPONIBLE">
-                    </div>
-                    <div class="field">
-                        <label for="v-empresaId">ID Empresa</label>
-                        <input type="number" id="v-empresaId" min="1" required placeholder="1">
-                    </div>
-                    <button type="submit" class="btn btn-submit">Agregar Vehículo</button>
-                </form>
-            </section>
-
-        </aside>
-
-        <section class="content-area">
-            <div class="content-header">
-                <h2>Envíos en Monitoreo</h2>
-                <span id="contador-envios" class="badge-counter">0 envíos</span>
-            </div>
-
-            <div id="envios-grid" class="grid-container">
-                <!-- Renderizado dinámico desde app.js -->
-            </div>
+                <button type="submit" class="btn btn-primary">Ingresar</button>
+            </form>
         </section>
-
     </main>
 
-    <div id="modal-bitacora" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Bitácora de Auditoría</h2>
-                <button type="button" class="modal-close" onclick="cerrarBitacora()">&times;</button>
-            </div>
-
-            <div class="modal-filtros">
-                <div class="field">
-                    <label for="bitacora-desde">Desde</label>
-                    <input type="date" id="bitacora-desde" onchange="renderBitacora()">
-                </div>
-                <div class="field">
-                    <label for="bitacora-hasta">Hasta</label>
-                    <input type="date" id="bitacora-hasta" onchange="renderBitacora()">
-                </div>
-            </div>
-
-            <div id="bitacora-lista" class="bitacora-list"></div>
-        </div>
-    </div>
+    <footer class="site-footer">
+        <p>&copy; 2026 ExpresoFast - IF0009 Desarrollo de Software IV</p>
+    </footer>
 
     <script src="app.js"></script>
 </body>
