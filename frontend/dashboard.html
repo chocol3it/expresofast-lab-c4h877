@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpresoFast - Consola de Operación</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="dashboard-page">
+
+    <header class="topbar">
+        <a class="logo" href="dashboard.html">ExpresoFast</a>
+        <section class="session-info" aria-label="Sesión actual">
+            <p>
+                <strong id="nombreUsuario">-</strong>
+                <span id="rolUsuario" class="role-badge">-</span>
+            </p>
+            <button type="button" id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
+        </section>
+    </header>
+
+    <nav class="main-nav" aria-label="Filtrar envíos por estado">
+        <ul>
+            <li><button type="button" class="filter-btn active" data-estado="TODOS">Todos</button></li>
+            <li><button type="button" class="filter-btn" data-estado="PENDIENTE">Pendientes</button></li>
+            <li><button type="button" class="filter-btn" data-estado="EN_TRANSITO">En Tránsito</button></li>
+            <li><button type="button" class="filter-btn" data-estado="ENTREGADO">Entregados</button></li>
+        </ul>
+    </nav>
+
+    <section class="layout">
+
+        <main class="main-content">
+
+            <section id="alertaBox" class="alert alert-error hidden" role="alert" aria-live="polite">
+                <h2>No se pudo completar la operación</h2>
+                <ul id="alertaLista"></ul>
+            </section>
+
+            <section id="kpiSection" aria-label="Indicadores clave">
+                <article class="kpi-card">
+                    <h3>Total Envíos</h3>
+                    <p id="kpiTotal">0</p>
+                </article>
+                <article class="kpi-card">
+                    <h3>Vehículos Activos</h3>
+                    <p id="kpiVehiculos">0</p>
+                </article>
+                <article class="kpi-card">
+                    <h3>Paquetes Entregados</h3>
+                    <p id="kpiEntregados">0</p>
+                </article>
+            </section>
+
+            <section id="acciones" class="acciones" aria-label="Acciones">
+                <button type="button" id="btnNuevoEnvio" class="btn btn-primary hidden">Nuevo envío / asignar vehículo</button>
+                <button type="button" id="btnNuevoVehiculo" class="btn btn-primary hidden">Registrar vehículo</button>
+            </section>
+
+            <header class="section-header">
+                <h2>Envíos</h2>
+                <p id="contadorEnvios">0 envíos</p>
+            </header>
+
+            <section id="enviosGrid" aria-live="polite"></section>
+        </main>
+
+        <aside id="bitacoraPanel" class="sidebar hidden" aria-label="Bitácora de auditoría">
+            <h2>Bitácora de Auditoría</h2>
+            <p id="bitacoraTitulo" class="muted">Seleccione un envío y presione "Ver bitácora".</p>
+            <ol id="bitacoraLista"></ol>
+        </aside>
+
+    </section>
+
+    <dialog id="dialogEnvio">
+        <form id="formEnvio" method="dialog">
+            <h2>Nuevo envío</h2>
+            <p class="field">
+                <label for="codigoRastreo">Código de rastreo</label>
+                <input type="text" id="codigoRastreo" required placeholder="EXP-9901">
+            </p>
+            <p class="field">
+                <label for="direccionDestino">Dirección de destino</label>
+                <input type="text" id="direccionDestino" required placeholder="Paraíso, Cartago">
+            </p>
+            <p class="field">
+                <label for="pesoKg">Peso (kg)</label>
+                <input type="number" id="pesoKg" step="0.01" min="0.1" required>
+            </p>
+            <p class="field">
+                <label for="costo">Costo (₡)</label>
+                <input type="number" id="costo" step="0.01" min="0" required>
+            </p>
+            <p class="field">
+                <label for="vehiculoId">ID del vehículo asignado</label>
+                <input type="number" id="vehiculoId" min="1" required>
+            </p>
+            <p class="field">
+                <label for="conductorId">ID del conductor</label>
+                <input type="number" id="conductorId" min="1" required>
+            </p>
+            <menu class="dialog-actions">
+                <button type="button" class="btn btn-secondary" data-cerrar="dialogEnvio">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </menu>
+        </form>
+    </dialog>
+
+    <dialog id="dialogVehiculo">
+        <form id="formVehiculo" method="dialog">
+            <h2>Registrar vehículo</h2>
+            <p class="field">
+                <label for="vPlaca">Placa</label>
+                <input type="text" id="vPlaca" required placeholder="SJB-123">
+            </p>
+            <p class="field">
+                <label for="vCapacidad">Capacidad (kg)</label>
+                <input type="number" id="vCapacidad" step="0.01" min="0.1" required>
+            </p>
+            <p class="field">
+                <label for="vEstado">Estado</label>
+                <select id="vEstado" required>
+                    <option value="DISPONIBLE">DISPONIBLE</option>
+                    <option value="EN_RUTA">EN_RUTA</option>
+                    <option value="MANTENIMIENTO">MANTENIMIENTO</option>
+                </select>
+            </p>
+            <p class="field">
+                <label for="vEmpresaId">ID de la empresa</label>
+                <input type="number" id="vEmpresaId" min="1" required>
+            </p>
+            <menu class="dialog-actions">
+                <button type="button" class="btn btn-secondary" data-cerrar="dialogVehiculo">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </menu>
+        </form>
+    </dialog>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 ExpresoFast - Universidad de Costa Rica, Sede del Atlántico</p>
+        <p><a href="mailto:soporte@expresofast.cr">Soporte técnico</a> · <a href="#">Manual de usuario</a></p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
