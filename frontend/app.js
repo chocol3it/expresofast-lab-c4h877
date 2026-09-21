@@ -1,341 +1,409 @@
 const BASE_URL = 'http://localhost:8080/api';
-const URL_ENVIOS = BASE_URL + '/envios';
-const URL_VEHICULOS = BASE_URL + '/vehiculos';
-
-let listaEnvios = [];
-let bitacoraActual = [];
 
 // ============================================================
-// Utilidades de sesión
+// Utilidades de sesión (JWT en sessionStorage)
 // ============================================================
 function getToken() {
-    return localStorage.getItem('jwt_token');
+    return sessionStorage.getItem('jwt_token');
 }
 
-function getUsername() {
-    return localStorage.getItem('username') || '';
+function limpiarSesion() {
+    sessionStorage.clear();
 }
 
-function getRoles() {
+function irAlLogin() {
+    limpiarSesion();
+    window.location.href = 'index.html';
+}
+
+function decodificarToken(token) {
     try {
-        return JSON.parse(localStorage.getItem('roles') || '[]');
-    } catch (e) {
-        return [];
+        const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(payload));
+    } catch (error) {
+        return null;
     }
 }
 
-function hasRole(role) {
-    return getRoles().includes(role);
+function obtenerRoles() {
+    const datos = decodificarToken(getToken());
+    if (!datos || !datos.roles) {
+        return [];
+    }
+    return datos.roles.split(',');
 }
 
-function logout() {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('roles');
-    window.location.href = 'login.html';
+function tieneRol(rol) {
+    return obtenerRoles().includes(rol);
 }
 
-function fetchWithAuth(url, options = {}) {
-    const headers = Object.assign(
-        {
+function escapeHtml(texto) {
+    return String(texto ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// ============================================================
+// Petición a la API con el token y manejo de errores HTTP
+// ============================================================
+async function llamarApi(ruta, opciones = {}) {
+    const token = getToken();
+
+    const respuesta = await fetch(BASE_URL + ruta, {
+        ...opciones,
+        headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
-        },
-        options.headers || {}
-    );
-
-    return fetch(url, Object.assign({}, options, { headers })).then(response => {
-        if (response.status === 401 || response.status === 403) {
-            logout();
-            throw new Error('Sesión expirada o sin permisos suficientes.');
+            'Authorization': `Bearer ${token}`
         }
-        return response;
     });
+
+    if (respuesta.status === 401 || respuesta.status === 403) {
+        irAlLogin();
+        throw new Error('Sesión no válida');
+    }
+
+    if (!respuesta.ok) {
+        let problema = {};
+        try {
+            problema = await respuesta.json();
+        } catch (error) {
+        }
+        const errores = extraerErrores(respuesta.status, problema);
+        mostrarErrores(errores);
+        throw new Error('Error HTTP ' + respuesta.status);
+    }
+
+    if (respuesta.status === 204) {
+        return null;
+    }
+    return respuesta.json();
+}
+
+function extraerErrores(status, problema) {
+    const errores = [];
+
+    if (problema.invalidFields) {
+        for (const campo in problema.invalidFields) {
+            errores.push(campo + ': ' + problema.invalidFields[campo]);
+        }
+    }
+
+    if (errores.length === 0) {
+        if (status === 404) {
+            errores.push(problema.detail || 'El recurso solicitado no existe.');
+        } else {
+            errores.push(problema.detail || 'Ocurrió un error inesperado (HTTP ' + status + ').');
+        }
+    }
+    return errores;
+}
+
+function mostrarErrores(errores) {
+    const caja = document.getElementById('alertaBox');
+    const lista = document.getElementById('alertaLista');
+    if (!caja || !lista) {
+        return;
+    }
+    lista.innerHTML = errores.map(e => `<li>${escapeHtml(e)}</li>`).join('');
+    caja.classList.remove('hidden');
+}
+
+function ocultarErrores() {
+    const caja = document.getElementById('alertaBox');
+    if (caja) {
+        caja.classList.add('hidden');
+    }
 }
 
 // ============================================================
-// Página de Login (login.html)
+// Login (index.html)
 // ============================================================
-const formLogin = document.getElementById('form-login');
-if (formLogin) {
-    formLogin.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const errorBox = document.getElementById('login-error');
-        errorBox.classList.add('hidden');
+const loginForm = document.getElementById('loginForm');
+
+if (loginForm) {
+    if (getToken()) {
+        window.location.href = 'dashboard.html';
+    }
+
+    loginForm.addEventListener('submit', async function (evento) {
+        evento.preventDefault();
+
+        const cajaError = document.getElementById('loginError');
+        cajaError.classList.add('hidden');
 
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
 
-        fetch(BASE_URL + '/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        })
-            .then(async response => {
-                if (!response.ok) {
-                    throw new Error('Usuario o contraseña incorrectos.');
-                }
-                return response.json();
-            })
-            .then(data => {
-                localStorage.setItem('jwt_token', data.token);
-                localStorage.setItem('username', data.username);
-                localStorage.setItem('roles', JSON.stringify(data.roles));
-                window.location.href = 'index.html';
-            })
-            .catch(error => {
-                errorBox.textContent = error.message;
-                errorBox.classList.remove('hidden');
+        try {
+            const respuesta = await fetch(BASE_URL + '/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
             });
+
+            if (respuesta.status === 401) {
+                throw new Error('Usuario o contraseña incorrectos.');
+            }
+            if (respuesta.status === 400) {
+                throw new Error('Debe ingresar el usuario y la contraseña.');
+            }
+            if (!respuesta.ok) {
+                throw new Error('No se pudo iniciar sesión (HTTP ' + respuesta.status + ').');
+            }
+
+            const datos = await respuesta.json();
+            sessionStorage.setItem('jwt_token', datos.token);
+            window.location.href = 'dashboard.html';
+        } catch (error) {
+            if (error instanceof TypeError) {
+                cajaError.textContent = 'No se pudo conectar con el servidor.';
+            } else {
+                cajaError.textContent = error.message;
+            }
+            cajaError.classList.remove('hidden');
+        }
     });
 }
 
 // ============================================================
-// Tablero principal (index.html)
+// Dashboard (dashboard.html)
 // ============================================================
-const enviosGrid = document.getElementById('envios-grid');
+const enviosGrid = document.getElementById('enviosGrid');
+
 if (enviosGrid) {
+    let envios = [];
+    let filtroActual = 'TODOS';
 
-    window.onload = function () {
-        if (!getToken()) {
-            window.location.href = 'login.html';
+    iniciarDashboard();
+
+    function iniciarDashboard() {
+        if (!getToken() || !decodificarToken(getToken())) {
+            irAlLogin();
             return;
         }
-        aplicarVisibilidadPorRol();
+
+        const datos = decodificarToken(getToken());
+        document.getElementById('nombreUsuario').textContent = datos.sub;
+        document.getElementById('rolUsuario').textContent = obtenerRoles()
+            .map(r => r.replace('ROLE_', '')).join(', ');
+
+        aplicarVistaPorRol();
+        configurarEventos();
         cargarEnvios();
-        if (hasRole('ROLE_ADMIN')) {
-            cargarFlota();
-        }
-    };
-
-    function aplicarVisibilidadPorRol() {
-        document.getElementById('session-username').textContent = getUsername();
-        document.getElementById('session-role').textContent = getRoles().join(', ');
-
-        const esSoloConductor = hasRole('ROLE_CONDUCTOR')
-            && !hasRole('ROLE_ADMIN') && !hasRole('ROLE_OPERADOR');
-
-        document.getElementById('panel-crear-envio').classList.toggle('hidden', esSoloConductor);
-        document.getElementById('panel-flota').classList.toggle('hidden', !hasRole('ROLE_ADMIN'));
     }
 
-    function cargarEnvios() {
-        fetchWithAuth(URL_ENVIOS + '/optimizados')
-            .then(response => response.json())
-            .then(data => {
-                listaEnvios = data;
-                mostrarEnvios(listaEnvios);
-            })
-            .catch(error => {
-                console.error('Error al cargar:', error);
+    // ---------- RBAC en el cliente ----------
+    function aplicarVistaPorRol() {
+        const esAdmin = tieneRol('ROLE_ADMIN');
+        const esOperador = tieneRol('ROLE_OPERADOR');
+
+        document.getElementById('bitacoraPanel').classList.toggle('hidden', !esAdmin);
+        document.getElementById('btnNuevoVehiculo').classList.toggle('hidden', !esAdmin);
+
+        document.getElementById('btnNuevoEnvio').classList.toggle('hidden', !(esAdmin || esOperador));
+    }
+
+    function configurarEventos() {
+        document.getElementById('btnLogout').addEventListener('click', irAlLogin);
+
+        document.querySelectorAll('.filter-btn').forEach(boton => {
+            boton.addEventListener('click', () => {
+                filtroActual = boton.dataset.estado;
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                boton.classList.add('active');
+                mostrarEnvios();
             });
-    }
+        });
 
-    function mostrarEnvios(envios) {
-        const contenedor = document.getElementById('envios-grid');
-        contenedor.innerHTML = '';
-        document.getElementById('contador-envios').textContent = envios.length + ' envíos';
+        document.getElementById('btnNuevoEnvio').addEventListener('click', () => {
+            document.getElementById('dialogEnvio').showModal();
+        });
+        document.getElementById('btnNuevoVehiculo').addEventListener('click', () => {
+            document.getElementById('dialogVehiculo').showModal();
+        });
+        document.querySelectorAll('[data-cerrar]').forEach(boton => {
+            boton.addEventListener('click', () => {
+                document.getElementById(boton.dataset.cerrar).close();
+            });
+        });
 
-        if (envios.length === 0) {
-            contenedor.innerHTML = '<p>No hay envíos registrados.</p>';
-            return;
-        }
+        document.getElementById('formEnvio').addEventListener('submit', crearEnvio);
+        document.getElementById('formVehiculo').addEventListener('submit', crearVehiculo);
 
-        const puedeCambiarEstado = hasRole('ROLE_ADMIN') || hasRole('ROLE_CONDUCTOR');
-        const puedeVerBitacora = hasRole('ROLE_ADMIN') || hasRole('ROLE_OPERADOR');
-
-        envios.forEach(envio => {
-            const acciones = [];
-            if (puedeCambiarEstado) {
-                acciones.push(`<button class="btn btn-action btn-transito" onclick="cambiarEstado(${envio.id}, 'EN_TRANSITO')">En Tránsito</button>`);
-                acciones.push(`<button class="btn btn-action btn-entregado" onclick="cambiarEstado(${envio.id}, 'ENTREGADO')">Entregado</button>`);
+        enviosGrid.addEventListener('click', evento => {
+            const boton = evento.target.closest('button[data-accion]');
+            if (!boton) {
+                return;
             }
-            if (puedeVerBitacora) {
-                acciones.push(`<button class="btn btn-action btn-bitacora" onclick="verBitacora(${envio.id})">Ver Bitácora</button>`);
+            const id = boton.dataset.id;
+            if (boton.dataset.accion === 'bitacora') {
+                verBitacora(id, boton.dataset.codigo);
+            } else {
+                cambiarEstado(id, boton.dataset.accion);
             }
-
-            contenedor.innerHTML += `
-                <article class="card-envio">
-                    <div class="card-header">
-                        <strong>${envio.codigoRastreo}</strong>
-                        <span class="pill-status pill-${envio.estadoEnvio}">${envio.estadoEnvio}</span>
-                    </div>
-                    <div class="card-body">
-                        <p><strong>Destino:</strong> ${envio.direccionDestino}</p>
-                        <p><strong>Peso:</strong> ${envio.pesoKg} kg | <strong>Costo:</strong> ₡${envio.costo}</p>
-                        <p><strong>Vehículo:</strong> ${envio.placaVehiculo ?? 'N/A'}</p>
-                        <p><strong>Conductor:</strong> ${envio.nombreConductor ?? 'N/A'}</p>
-                    </div>
-                    <div class="card-actions">
-                        ${acciones.join('')}
-                    </div>
-                </article>
-            `;
         });
     }
 
-    const formEnvio = document.getElementById('form-envio');
-    if (formEnvio) {
-        formEnvio.addEventListener('submit', function (e) {
-            e.preventDefault();
+    // ---------- Envíos ----------
+    async function cargarEnvios() {
+        try {
+            envios = await llamarApi('/envios/optimizados');
+            mostrarEnvios();
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
-            const botonSubmit = e.target.querySelector('button[type="submit"]');
-            if (botonSubmit.disabled) return;
+    function mostrarEnvios() {
+        const filtrados = filtroActual === 'TODOS'
+            ? envios
+            : envios.filter(e => e.estadoEnvio === filtroActual);
 
-            const nuevoEnvio = {
-                codigoRastreo: document.getElementById('codigoRastreo').value,
-                direccionDestino: document.getElementById('direccionDestino').value,
-                pesoKg: parseFloat(document.getElementById('pesoKg').value),
-                costo: parseFloat(document.getElementById('costo').value),
-                vehiculoId: parseInt(document.getElementById('vehiculoId').value),
-                conductorId: parseInt(document.getElementById('conductorId').value)
-            };
+        actualizarKpis();
+        document.getElementById('contadorEnvios').textContent = filtrados.length + ' envíos';
 
-            botonSubmit.disabled = true;
+        if (filtrados.length === 0) {
+            enviosGrid.innerHTML = '<p>No hay envíos para mostrar.</p>';
+            return;
+        }
 
-            fetchWithAuth(URL_ENVIOS, {
+        enviosGrid.innerHTML = filtrados.map(crearTarjeta).join('');
+    }
+
+    function crearTarjeta(envio) {
+        const esAdmin = tieneRol('ROLE_ADMIN');
+        const esOperador = tieneRol('ROLE_OPERADOR');
+        const esConductor = tieneRol('ROLE_CONDUCTOR');
+        const botones = [];
+
+        if ((esAdmin || esOperador) && envio.estadoEnvio === 'PENDIENTE') {
+            botones.push(`<button type="button" class="btn btn-warning" data-accion="EN_TRANSITO" data-id="${envio.id}">Marcar en tránsito</button>`);
+        }
+        if ((esAdmin || esConductor) && envio.estadoEnvio === 'EN_TRANSITO') {
+            botones.push(`<button type="button" class="btn btn-success" data-accion="ENTREGADO" data-id="${envio.id}">Marcar entregado</button>`);
+        }
+        if (esAdmin) {
+            botones.push(`<button type="button" class="btn btn-secondary" data-accion="bitacora" data-id="${envio.id}" data-codigo="${escapeHtml(envio.codigoRastreo)}">Ver bitácora</button>`);
+        }
+
+        return `
+            <article class="card-envio estado-${escapeHtml(envio.estadoEnvio)}">
+                <header class="card-header">
+                    <h3>${escapeHtml(envio.codigoRastreo)}</h3>
+                    <span class="estado-pill ${escapeHtml(envio.estadoEnvio)}">${escapeHtml(envio.estadoEnvio)}</span>
+                </header>
+                <section class="card-body">
+                    <p><span>Destino:</span> ${escapeHtml(envio.direccionDestino)}</p>
+                    <p><span>Peso:</span> ${escapeHtml(envio.pesoKg)} kg</p>
+                    <p><span>Costo:</span> ₡${escapeHtml(envio.costo)}</p>
+                    <p><span>Vehículo:</span> ${escapeHtml(envio.placaVehiculo ?? 'N/A')}</p>
+                    <p><span>Conductor:</span> ${escapeHtml(envio.nombreConductor ?? 'N/A')}</p>
+                </section>
+                <footer class="card-actions">${botones.join('')}</footer>
+            </article>
+        `;
+    }
+
+    function actualizarKpis() {
+        const entregados = envios.filter(e => e.estadoEnvio === 'ENTREGADO').length;
+        const placasActivas = new Set(
+            envios.filter(e => e.estadoEnvio === 'EN_TRANSITO' && e.placaVehiculo)
+                .map(e => e.placaVehiculo)
+        );
+
+        document.getElementById('kpiTotal').textContent = envios.length;
+        document.getElementById('kpiVehiculos').textContent = placasActivas.size;
+        document.getElementById('kpiEntregados').textContent = entregados;
+    }
+
+    async function cambiarEstado(id, nuevoEstado) {
+        ocultarErrores();
+        try {
+            await llamarApi('/envios/' + id + '/estado', {
+                method: 'PATCH',
+                body: JSON.stringify({ nuevoEstado })
+            });
+            cargarEnvios();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function crearEnvio(evento) {
+        evento.preventDefault();
+        ocultarErrores();
+
+        const nuevoEnvio = {
+            codigoRastreo: document.getElementById('codigoRastreo').value,
+            direccionDestino: document.getElementById('direccionDestino').value,
+            pesoKg: parseFloat(document.getElementById('pesoKg').value),
+            costo: parseFloat(document.getElementById('costo').value),
+            vehiculoId: parseInt(document.getElementById('vehiculoId').value),
+            conductorId: parseInt(document.getElementById('conductorId').value)
+        };
+
+        try {
+            await llamarApi('/envios', {
                 method: 'POST',
                 body: JSON.stringify(nuevoEnvio)
-            })
-                .then(async response => {
-                    if (response.ok) {
-                        alert('Envío registrado con éxito');
-                        document.getElementById('form-envio').reset();
-                        cargarEnvios();
-                    } else {
-                        const error = await response.json();
-                        alert('Error al registrar: ' + (error.detail || 'Solicitud inválida.'));
-                    }
-                })
-                .catch(error => console.error('Error en POST:', error))
-                .finally(() => {
-                    botonSubmit.disabled = false;
-                });
-        });
-    }
-
-    window.cambiarEstado = function (id, nuevoEstado) {
-        fetchWithAuth(URL_ENVIOS + '/' + id + '/estado', {
-            method: 'PATCH',
-            body: JSON.stringify({ nuevoEstado })
-        })
-            .then(async response => {
-                if (response.ok) {
-                    cargarEnvios();
-                } else {
-                    const error = await response.json();
-                    alert(error.detail || 'No se pudo actualizar el estado.');
-                }
-            })
-            .catch(error => console.error('Error en PATCH:', error));
-    };
-
-    window.filtrar = function (estado) {
-        if (estado === 'TODOS') {
-            mostrarEnvios(listaEnvios);
-        } else {
-            mostrarEnvios(listaEnvios.filter(e => e.estadoEnvio === estado));
+            });
+            document.getElementById('formEnvio').reset();
+            document.getElementById('dialogEnvio').close();
+            cargarEnvios();
+        } catch (error) {
+            document.getElementById('dialogEnvio').close();
+            console.error(error);
         }
-    };
-
-    // ---------- Bitácora ----------
-    window.verBitacora = function (envioId) {
-        fetchWithAuth(URL_ENVIOS + '/' + envioId + '/bitacora')
-            .then(response => response.json())
-            .then(data => {
-                bitacoraActual = data;
-                document.getElementById('bitacora-desde').value = '';
-                document.getElementById('bitacora-hasta').value = '';
-                renderBitacora();
-                document.getElementById('modal-bitacora').classList.remove('hidden');
-            })
-            .catch(error => console.error('Error al cargar bitácora:', error));
-    };
-
-    window.cerrarBitacora = function () {
-        document.getElementById('modal-bitacora').classList.add('hidden');
-    };
-
-    window.renderBitacora = function () {
-        const desde = document.getElementById('bitacora-desde').value;
-        const hasta = document.getElementById('bitacora-hasta').value;
-
-        const filtradas = bitacoraActual.filter(item => {
-            const fecha = item.fechaCambio.substring(0, 10);
-            if (desde && fecha < desde) return false;
-            if (hasta && fecha > hasta) return false;
-            return true;
-        });
-
-        const contenedor = document.getElementById('bitacora-lista');
-        contenedor.innerHTML = '';
-
-        if (filtradas.length === 0) {
-            contenedor.innerHTML = '<p>No hay registros de bitácora para el rango seleccionado.</p>';
-            return;
-        }
-
-        filtradas.forEach(item => {
-            contenedor.innerHTML += `
-                <div class="bitacora-item">
-                    <div class="transicion">${item.estadoAnterior} &rarr; ${item.estadoNuevo}</div>
-                    <div class="meta">
-                        ${new Date(item.fechaCambio).toLocaleString('es-CR')} · Usuario: ${item.usuario}
-                    </div>
-                    ${item.observaciones ? `<div class="meta">Observaciones: ${item.observaciones}</div>` : ''}
-                </div>
-            `;
-        });
-    };
-
-    // ---------- Flota (solo ADMIN) ----------
-    function cargarFlota() {
-        fetchWithAuth(URL_VEHICULOS)
-            .then(response => response.json())
-            .then(data => mostrarFlota(data))
-            .catch(error => console.error('Error al cargar flota:', error));
     }
 
-    function mostrarFlota(vehiculos) {
-        const contenedor = document.getElementById('flota-lista');
-        if (!contenedor) return;
-        contenedor.innerHTML = '';
-        vehiculos.forEach(v => {
-            contenedor.innerHTML += `
-                <div class="flota-item">
-                    <span>${v.placa} · ${v.capacidadKg} kg</span>
-                    <span>${v.estado}</span>
-                </div>
-            `;
-        });
-    }
+    // ---------- Vehículos (solo ADMIN) ----------
+    async function crearVehiculo(evento) {
+        evento.preventDefault();
+        ocultarErrores();
 
-    const formVehiculo = document.getElementById('form-vehiculo');
-    if (formVehiculo) {
-        formVehiculo.addEventListener('submit', function (e) {
-            e.preventDefault();
+        const nuevoVehiculo = {
+            placa: document.getElementById('vPlaca').value,
+            capacidadKg: parseFloat(document.getElementById('vCapacidad').value),
+            estado: document.getElementById('vEstado').value,
+            empresa: { id: parseInt(document.getElementById('vEmpresaId').value) }
+        };
 
-            const nuevoVehiculo = {
-                placa: document.getElementById('v-placa').value,
-                capacidadKg: parseFloat(document.getElementById('v-capacidad').value),
-                estado: document.getElementById('v-estado').value,
-                empresa: { id: parseInt(document.getElementById('v-empresaId').value) }
-            };
-
-            fetchWithAuth(URL_VEHICULOS, {
+        try {
+            await llamarApi('/vehiculos', {
                 method: 'POST',
                 body: JSON.stringify(nuevoVehiculo)
-            })
-                .then(async response => {
-                    if (response.ok) {
-                        document.getElementById('form-vehiculo').reset();
-                        cargarFlota();
-                    } else {
-                        const error = await response.json();
-                        alert(error.detail || 'No se pudo crear el vehículo.');
-                    }
-                })
-                .catch(error => console.error('Error al crear vehículo:', error));
-        });
+            });
+            document.getElementById('formVehiculo').reset();
+            document.getElementById('dialogVehiculo').close();
+        } catch (error) {
+            document.getElementById('dialogVehiculo').close();
+            console.error(error);
+        }
+    }
+
+    // ---------- Bitácora (solo ADMIN) ----------
+    async function verBitacora(id, codigo) {
+        ocultarErrores();
+        try {
+            const registros = await llamarApi('/envios/' + id + '/bitacora');
+            document.getElementById('bitacoraTitulo').textContent = 'Envío ' + codigo;
+
+            const lista = document.getElementById('bitacoraLista');
+            if (registros.length === 0) {
+                lista.innerHTML = '<li>Sin cambios de estado registrados.</li>';
+                return;
+            }
+            lista.innerHTML = registros.map(r => `
+                <li>
+                    <strong>${escapeHtml(r.estadoAnterior)} &rarr; ${escapeHtml(r.estadoNuevo)}</strong>
+                    <small>${new Date(r.fechaCambio).toLocaleString('es-CR')} · ${escapeHtml(r.usuario)}</small>
+                    ${r.observaciones ? `<small>${escapeHtml(r.observaciones)}</small>` : ''}
+                </li>
+            `).join('');
+        } catch (error) {
+            console.error(error);
+        }
     }
 }
