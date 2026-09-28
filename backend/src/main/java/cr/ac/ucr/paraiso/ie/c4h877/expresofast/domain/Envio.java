@@ -15,6 +15,9 @@ public class Envio extends AuditableEntity {
     @Column(name = "codigo_rastreo", nullable = false, unique = true, length = 30)
     private String codigoRastreo;
 
+    @Column(name = "destinatario", nullable = false, length = 100)
+    private String destinatario;
+
     @Column(name = "direccion_destino", nullable = false, length = 200)
     private String direccionDestino;
 
@@ -65,6 +68,14 @@ public class Envio extends AuditableEntity {
 
     public void setCodigoRastreo(String codigoRastreo) {
         this.codigoRastreo = codigoRastreo;
+    }
+
+    public String getDestinatario() {
+        return destinatario;
+    }
+
+    public void setDestinatario(String destinatario) {
+        this.destinatario = destinatario;
     }
 
     public String getDireccionDestino() {

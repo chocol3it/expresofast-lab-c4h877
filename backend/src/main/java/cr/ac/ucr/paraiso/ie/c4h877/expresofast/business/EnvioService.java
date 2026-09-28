@@ -12,6 +12,7 @@ import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Usuario;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Vehiculo;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.BitacoraResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CambioEstadoDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioRequestDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.InvalidStateTransitionException;
@@ -21,6 +22,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -146,6 +150,26 @@ public class EnvioService {
         return envioRepository.updateEstadoByVehiculoId(nuevoEstado.trim(), vehiculoId);
     }
 
+    @Transactional(readOnly = true)
+    public Page<EnvioDTO> listarPaginado(int page, int size, String sortBy, String dir, String busqueda,
+            String estado) {
+        Sort.Direction direccion = "desc".equalsIgnoreCase(dir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direccion, sortBy));
+
+        String estadoFiltro = (estado == null || estado.isBlank()) ? null : estado.trim();
+        String busquedaFiltro = (busqueda == null || busqueda.isBlank()) ? null : busqueda.trim();
+
+        return envioRepository.buscarPaginado(estadoFiltro, busquedaFiltro, pageRequest)
+                .map(this::toEnvioDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public List<EnvioDTO> listarViaStoredProcedure(String estado) {
+        return envioRepository.obtenerEnviosPorEstado(estado).stream()
+                .map(this::toEnvioDTO)
+                .toList();
+    }
+
     public double calcularTarifa(double pesoKg, double distanciaKm) {
         double tarifa = 1000.0 + (100.0 * pesoKg) + (100.0 * distanciaKm);
 
@@ -201,5 +225,16 @@ public class EnvioService {
                 envio.getConductor() != null
                         ? envio.getConductor().getNombre() + " " + envio.getConductor().getApellidos()
                         : null);
+    }
+
+    private EnvioDTO toEnvioDTO(Envio envio) {
+        return new EnvioDTO(
+                envio.getId(),
+                envio.getCodigoRastreo(),
+                envio.getDestinatario(),
+                envio.getDireccionDestino(),
+                envio.getCosto(),
+                envio.getEstadoEnvio(),
+                envio.getFechaCreacion());
     }
 }
