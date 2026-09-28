@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpresoFast - Consola Paginada</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="dashboard-page">
+
+    <header class="topbar">
+        <a class="logo" href="dashboard.html">ExpresoFast</a>
+        <section class="session-info" aria-label="Sesión actual">
+            <p>
+                <strong id="nombreUsuario">-</strong>
+                <span id="rolUsuario" class="role-badge">-</span>
+            </p>
+            <a class="btn btn-secondary" href="dashboard.html">Volver al panel</a>
+            <button type="button" id="btnLogout" class="btn btn-secondary">Cerrar sesión</button>
+        </section>
+    </header>
+
+    <main class="main-content paginado-main">
+
+        <section id="alertaBox" class="alert alert-error hidden" role="alert" aria-live="polite">
+            <h2>No se pudo completar la operación</h2>
+            <ul id="alertaLista"></ul>
+        </section>
+
+        <header class="section-header">
+            <h2>Envíos - Consola Paginada</h2>
+        </header>
+
+        <form id="formFiltros" class="filtros-bar" aria-label="Filtros de búsqueda">
+            <p class="field">
+                <label for="busqueda">Buscar (código, destinatario o dirección)</label>
+                <input type="text" id="busqueda" placeholder="Ej: EXP-9001, Maria...">
+            </p>
+            <p class="field">
+                <label for="estado">Estado</label>
+                <select id="estado">
+                    <option value="">Todos</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="EN_TRANSITO">EN_TRANSITO</option>
+                    <option value="ENTREGADO">ENTREGADO</option>
+                    <option value="CANCELADO">CANCELADO</option>
+                </select>
+            </p>
+            <p class="field">
+                <label for="sortBy">Ordenar por</label>
+                <select id="sortBy">
+                    <option value="fechaCreacion">Fecha de creación</option>
+                    <option value="costo">Monto de flete</option>
+                    <option value="codigoRastreo">Código de rastreo</option>
+                </select>
+            </p>
+            <p class="field">
+                <label for="direction">Dirección</label>
+                <select id="direction">
+                    <option value="desc">Descendente</option>
+                    <option value="asc">Ascendente</option>
+                </select>
+            </p>
+            <p class="field">
+                <label for="tamanoPagina">Ítems por página</label>
+                <select id="tamanoPagina">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                </select>
+            </p>
+            <menu class="filtros-acciones">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+                <button type="button" id="btnStoredProcedure" class="btn btn-secondary">
+                    Ejecutar Stored Procedure
+                </button>
+            </menu>
+        </form>
+
+        <p id="modoActivo" class="muted">Modo: consulta paginada (Pageable).</p>
+
+        <div class="tabla-envios-wrapper">
+            <table class="tabla-envios">
+                <caption class="visually-hidden">Listado de envíos</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Rastreo</th>
+                        <th scope="col">Destinatario</th>
+                        <th scope="col">Dirección</th>
+                        <th scope="col">Flete</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaEnviosBody">
+                    <tr>
+                        <td colspan="5">Cargando envíos...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav class="paginador" aria-label="Navegación de páginas">
+            <button type="button" id="btnPrimera" class="btn btn-secondary">&laquo; Primera</button>
+            <button type="button" id="btnAnterior" class="btn btn-secondary">&lsaquo; Anterior</button>
+            <p id="indicadorPagina" aria-live="polite">Página 1 de 1 (Total: 0 envíos)</p>
+            <button type="button" id="btnSiguiente" class="btn btn-secondary">Siguiente &rsaquo;</button>
+            <button type="button" id="btnUltima" class="btn btn-secondary">Última &raquo;</button>
+        </nav>
+
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 ExpresoFast - Universidad de Costa Rica, Sede del Atlántico</p>
+    </footer>
+
+    <script src="app.js"></script>
+    <script src="paginacion.js"></script>
+</body>
+
+</html>
