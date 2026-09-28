@@ -66,6 +66,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/envios/optimizados")
                         .hasAnyRole("ADMIN", "OPERADOR", "CONDUCTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/envios/**")
+                        .hasAnyRole("ADMIN", "OPERADOR", "CONDUCTOR")
                         .requestMatchers(HttpMethod.POST, "/api/envios")
                         .hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers(HttpMethod.PATCH, "/api/envios/*/estado")
