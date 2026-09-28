@@ -3,6 +3,7 @@ package cr.ac.ucr.paraiso.ie.c4h877.expresofast.business;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,6 +23,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -37,6 +41,7 @@ import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Usuario;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Vehiculo;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.BitacoraResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CambioEstadoDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioRequestDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.InvalidStateTransitionException;
@@ -401,5 +406,49 @@ public class EnvioServiceTest {
 
         assertEquals(1, resultado.size());
         assertEquals("EXP-1234", resultado.get(0).getCodigoRastreo());
+    }
+
+    @Test
+    void listarPaginado_SinFiltros_RetornaPageDeDTO() {
+        Envio envio = new Envio(1, "EXP-9001", "Paraiso, Cartago",
+                new BigDecimal("5.00"), new BigDecimal("4500.00"), "PENDIENTE", null, null);
+        envio.setDestinatario("Maria Jimenez");
+
+        PageRequest solicitud = PageRequest.of(0, 5, org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "fechaCreacion"));
+        Page<Envio> pagina = new PageImpl<>(List.of(envio), solicitud, 1);
+        when(envioRepository.buscarPaginado(null, null, solicitud))
+                .thenReturn(pagina);
+
+        Page<EnvioDTO> resultado = envioService.listarPaginado(0, 5, "fechaCreacion", "desc", null, null);
+
+        assertEquals(1, resultado.getTotalElements());
+        assertEquals("EXP-9001", resultado.getContent().get(0).codigoRastreo());
+        assertEquals("Maria Jimenez", resultado.getContent().get(0).destinatario());
+    }
+
+    @Test
+    void listarPaginado_ConBusquedaYEstado_FiltraEnElRepositorio() {
+        when(envioRepository.buscarPaginado(eq("PENDIENTE"), eq("maria"), any()))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        envioService.listarPaginado(0, 5, "costo", "asc", "  maria  ", " PENDIENTE ");
+
+        verify(envioRepository).buscarPaginado(eq("PENDIENTE"), eq("maria"), any());
+    }
+
+    @Test
+    void listarViaStoredProcedure_RetornaListaDeDTO() {
+        Envio envio = new Envio(1, "EXP-9002", "Orosi, Cartago",
+                new BigDecimal("8.00"), new BigDecimal("3200.00"), "ENTREGADO", null, null);
+        envio.setDestinatario("Jose Fernandez");
+
+        when(envioRepository.obtenerEnviosPorEstado("ENTREGADO")).thenReturn(List.of(envio));
+
+        List<EnvioDTO> resultado = envioService.listarViaStoredProcedure("ENTREGADO");
+
+        assertEquals(1, resultado.size());
+        assertEquals("ENTREGADO", resultado.get(0).estado());
+        assertEquals("Jose Fernandez", resultado.get(0).destinatario());
     }
 }
