@@ -1,0 +1,31 @@
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background-color: #1f2937;
+  color: #fff;
+}
+
+.navbar-brand {
+  font-weight: 700;
+}
+
+.navbar nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.navbar nav a {
+  color: #d1d5db;
+  text-decoration: none;
+}
+
+.navbar nav a.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+main {
+  padding: 1.5rem;
+}

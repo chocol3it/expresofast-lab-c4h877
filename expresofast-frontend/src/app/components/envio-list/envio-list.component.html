@@ -1,0 +1,37 @@
+<h2>Envíos</h2>
+
+<!--
+  TODO: arma la tabla con *ngFor="let envio of envios" para recorrer la lista.
+  Columnas pedidas por el laboratorio: código de rastreo, destinatario, dirección,
+  monto de flete y estado (con insignia de color) + selector para cambiar el estado.
+
+  Ejemplo de estructura a completar:
+
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Destinatario</th>
+        <th>Dirección</th>
+        <th>Flete</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let envio of envios">
+        <td>{{ envio.codigoRastreo }}</td>
+        <td>{{ envio.destinatario }}</td>
+        <td>{{ envio.direccionDestino }}</td>
+        <td>{{ envio.montoFlete | currency }}</td>
+        <td>
+          -- TODO: <span> con [ngClass] o [class] que cambie de color según envio.estado
+          (PENDIENTE: amarillo, EN_TRANSITO: azul, ENTREGADO: verde, CANCELADO: rojo)
+        </td>
+        <td>
+          -- TODO: <select> con [ngModel] o (change) que llame a cambiarEstado(envio, ...)
+        </td>
+      </tr>
+    </tbody>
+  </table>
+-->
