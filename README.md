@@ -1,8 +1,8 @@
-# ExpresoFast - Laboratorio 8
+# ExpresoFast - Laboratorio 9
 
 **Curso:** IF0009 - Desarrollo de Software IV
 **Ciclo:** II-2026
-**Laboratorio:** 8 - Integración Full-Stack - Consola de Operación Logística
+**Laboratorio:** 9 - Procedimientos Almacenados, Paginación Relacional y Vistas HTML5 Paginadas
 **Estudiante:** Andreé Murillo Sojo
 **Carné:** C4H877
 
@@ -26,11 +26,25 @@ Laboratorio 6, ejecute en orden contra esa base de datos (con SSMS o `sqlcmd`):
 2. `database/02_schema_lab6_extension.sql` — crea `Usuario`, `Rol`, `UsuarioRol` y `BitacoraEnvio`.
 3. `database/03_data_seeds.sql` — inserta los 3 roles RBAC y los usuarios de prueba con su
    contraseña ya encriptada con BCrypt.
+4. `database/04_schema_lab9_procedures.sql` — agrega la columna `destinatario` a `Envio` (si
+   el backend ya corrió con `ddl-auto=update` esta columna puede existir; el script es
+   idempotente) y crea los procedimientos `SP_OBTENER_ENVIOS_POR_ESTADO` y
+   `SP_RESUMEN_METRICAS_ENVIOS`.
+5. `database/05_data_lab9_seeds.sql` — inserta 15 envíos de prueba con estados variados
+   (`PENDIENTE`, `EN_TRANSITO`, `ENTREGADO`, `CANCELADO`) para probar la paginación.
 
 ```powershell
 sqlcmd -S localhost,1433 -U sa -P <password> -d ExpresoFast_C4H877_II2026 -i database\02_schema_lab6_extension.sql
 sqlcmd -S localhost,1433 -U sa -P <password> -d ExpresoFast_C4H877_II2026 -i database\03_data_seeds.sql
+sqlcmd -S localhost,1433 -U sa -P <password> -d ExpresoFast_C4H877_II2026 -i database\04_schema_lab9_procedures.sql
+sqlcmd -S localhost,1433 -U sa -P <password> -d ExpresoFast_C4H877_II2026 -i database\05_data_lab9_seeds.sql
 ```
+
+> **Nota:** `application.properties.template` trae `spring.jpa.hibernate.ddl-auto=update`
+> para que Hibernate agregue automáticamente la columna `destinatario` al iniciar el backend
+> sin correr el `ALTER TABLE` a mano. Los procedimientos almacenados **no** los crea
+> Hibernate: siempre hay que ejecutar `04_schema_lab9_procedures.sql`. Una vez verificado el
+> esquema en SSMS, regrese `ddl-auto` a `validate` para volver al modo estricto de Lab 8.
 
 ## Usuarios de Prueba
 
@@ -75,8 +89,10 @@ Archivos del cliente:
 |------------------|-------------------------------------------------------------------|
 | `index.html`     | Vista de autenticación (`#loginForm`)                             |
 | `dashboard.html` | Consola de operaciones (header, nav, main, aside y footer)        |
+| `dashboard_paginado.html` | Consola paginada (Lab 9): filtros, tabla y navegador de páginas |
 | `styles.css`     | Estilos con variables CSS, Grid, Flexbox y diseño Mobile-First    |
 | `app.js`         | Login, consumo de la API con `fetch`, manejo de errores y roles   |
+| `paginacion.js`  | Fetch async/await hacia `/api/v1/envios`, render de tabla y paginador |
 
 Vistas por rol en el cliente:
 
@@ -143,6 +159,38 @@ backend/target/site/jacoco/index.html
 | `/api/envios/{id}/estado`          | PATCH  | ADMIN, OPERADOR, CONDUCTOR     |
 | `/api/envios/{id}/bitacora`        | GET    | ADMIN, OPERADOR                |
 | `/api/vehiculos/**`                | ALL    | ADMIN                          |
+| `/api/v1/envios`                   | GET    | ADMIN, OPERADOR, CONDUCTOR     |
+| `/api/v1/envios/procedimiento/{estado}` | GET | ADMIN, OPERADOR, CONDUCTOR |
+
+## Laboratorio 9 - Stored Procedures y Paginación Relacional
+
+### Procedimientos almacenados
+
+| Procedimiento                  | Parámetro     | Descripción                                                  |
+|---------------------------------|---------------|---------------------------------------------------------------|
+| `SP_OBTENER_ENVIOS_POR_ESTADO` | `@pEstado`    | Envíos de un estado, ordenados por `fecha_creacion` DESC.     |
+| `SP_RESUMEN_METRICAS_ENVIOS`   | (ninguno)     | Conteo y suma de flete agrupados por `estado_envio` (reto).   |
+
+En `EnvioRepository` se mapea con `@Procedure(procedureName = "SP_OBTENER_ENVIOS_POR_ESTADO")`
+y se expone en `GET /api/v1/envios/procedimiento/{estado}`.
+
+### Endpoint paginado
+
+`GET /api/v1/envios` acepta `page` (default 0), `size` (default 5), `sortBy` (default
+`fechaCreacion`), `direction` (`asc`/`desc`, default `desc`), `busqueda` (código, destinatario
+o dirección) y `estado`. Internamente `EnvioService.listarPaginado` arma un
+`PageRequest.of(page, size, Sort.by(...))` y `EnvioRepository.buscarPaginado` retorna un
+`Page<Envio>` que se mapea a `Page<EnvioDTO>`. La respuesta JSON trae `content`, `number`,
+`totalPages`, `totalElements`, `first` y `last`, que es lo que consume
+`frontend/paginacion.js` para pintar la tabla y habilitar/deshabilitar los botones de
+navegación.
+
+### Notas de depuración
+
+- El cliente siempre envía `page` en base 0 a la API, pero muestra `número de página + 1` en
+  el indicador ("Página X de Y").
+- Las consultas paginadas de `Envio` no usan `JOIN FETCH` sobre colecciones (el modelo solo
+  tiene relaciones `@ManyToOne`), por lo que no aplica la advertencia `HHH000104`.
 
 ## Estructura del Repositorio
 
