@@ -11,12 +11,15 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface EnvioRepository extends JpaRepository<Envio, Integer> {
 
     @Query("SELECT e FROM Envio e JOIN FETCH e.vehiculo v JOIN FETCH v.empresa JOIN FETCH e.conductor")
     List<Envio> findAllOptimized();
+
+    Optional<Envio> findByCodigoRastreo(String codigoRastreo);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Envio e SET e.estadoEnvio = :nuevoEstado WHERE e.vehiculo.id = :vehiculoId")

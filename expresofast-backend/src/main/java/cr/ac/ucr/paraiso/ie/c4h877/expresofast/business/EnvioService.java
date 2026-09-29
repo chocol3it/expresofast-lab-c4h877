@@ -12,15 +12,19 @@ import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Usuario;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Vehiculo;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.BitacoraResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CambioEstadoDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CrearEnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioRequestDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.InvalidStateTransitionException;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.ResourceNotFoundException;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -168,6 +172,59 @@ public class EnvioService {
         return envioRepository.obtenerEnviosPorEstado(estado).stream()
                 .map(this::toEnvioDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public EnvioDTO buscarPorCodigoRastreo(String codigoRastreo) {
+        Envio envio = envioRepository.findByCodigoRastreo(codigoRastreo)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Envío con código de rastreo: " + codigoRastreo + " no encontrado"));
+        return toEnvioDTO(envio);
+    }
+
+    // Lab 10: registro simplificado de envíos desde la SPA Angular (sin vehículo/conductor).
+    @Transactional
+    public EnvioDTO crearEnvioSimple(CrearEnvioDTO datos) {
+        Vehiculo vehiculo = vehiculoRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("No hay vehículos registrados"));
+        Conductor conductor = conductorRepository.findAll().stream().findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("No hay conductores registrados"));
+
+        Envio envio = new Envio();
+        envio.setCodigoRastreo(generarCodigoRastreo());
+        envio.setDestinatario(datos.getDestinatario());
+        envio.setDireccionDestino(datos.getDireccionDestino());
+        envio.setCosto(datos.getMontoFlete());
+        envio.setPesoKg(BigDecimal.ONE);
+        envio.setVehiculo(vehiculo);
+        envio.setConductor(conductor);
+        envio.setEstadoEnvio("PENDIENTE");
+
+        return toEnvioDTO(envioRepository.save(envio));
+    }
+
+    // Lab 10: actualización simple de estado desde la SPA Angular (sin bitácora).
+    @Transactional
+    public EnvioDTO actualizarEstadoSimple(Integer id, String nuevoEstado) {
+        Envio envio = envioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Envío con ID: " + id + " no encontrado"));
+
+        Set<String> estadosValidos = Set.of("PENDIENTE", "EN_TRANSITO", "ENTREGADO", "CANCELADO");
+        if (!estadosValidos.contains(nuevoEstado)) {
+            throw new IllegalArgumentException("Estado inválido: " + nuevoEstado);
+        }
+
+        envio.setEstadoEnvio(nuevoEstado);
+        return toEnvioDTO(envioRepository.save(envio));
+    }
+
+    private String generarCodigoRastreo() {
+        String codigo;
+        do {
+            int numero = ThreadLocalRandom.current().nextInt(1000, 10000);
+            codigo = "EXP-" + Year.now() + "-" + numero;
+        } while (envioRepository.findByCodigoRastreo(codigo).isPresent());
+        return codigo;
     }
 
     public double calcularTarifa(double pesoKg, double distanciaKm) {

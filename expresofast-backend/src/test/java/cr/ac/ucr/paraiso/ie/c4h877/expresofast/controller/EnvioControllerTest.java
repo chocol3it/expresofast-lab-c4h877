@@ -19,10 +19,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.business.EnvioService;
-import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioRequestDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CrearEnvioDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.GlobalExceptionHandler;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.ResourceNotFoundException;
+
+import java.time.LocalDateTime;
 
 @WebMvcTest(EnvioController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -43,7 +46,7 @@ class EnvioControllerTest {
 
         when(envioService.obtenerEnvio(1)).thenReturn(respuesta);
 
-        mockMvc.perform(get("/api/envios/1"))
+        mockMvc.perform(get("/api/v1/envios/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.codigoRastreo").value("EXP-1234"));
     }
@@ -53,7 +56,7 @@ class EnvioControllerTest {
         when(envioService.obtenerEnvio(99))
                 .thenThrow(new ResourceNotFoundException("Envío no encontrado"));
 
-        mockMvc.perform(get("/api/envios/99"))
+        mockMvc.perform(get("/api/v1/envios/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.title").value("Recurso No Encontrado"));
@@ -63,16 +66,13 @@ class EnvioControllerTest {
     void registrarEnvio_PayloadInvalido_Retorna400() throws Exception {
         String payload = """
                 {
-                  "codigoRastreo": "",
+                  "destinatario": "",
                   "direccionDestino": "",
-                  "pesoKg": 0,
-                  "costo": null,
-                  "vehiculoId": null,
-                  "conductorId": null
+                  "montoFlete": null
                 }
                 """;
 
-        mockMvc.perform(post("/api/envios")
+        mockMvc.perform(post("/api/v1/envios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest())
@@ -82,25 +82,44 @@ class EnvioControllerTest {
 
     @Test
     void registrarEnvio_Valido_Retorna201() throws Exception {
-        EnvioResponseDTO respuesta = new EnvioResponseDTO(
-                1, "EXP-1234", "Paraiso, Cartago", new BigDecimal("5.00"),
-                new BigDecimal("3500.00"), "PENDIENTE", "102938", "Carlos Mora V.");
+        EnvioDTO respuesta = new EnvioDTO(
+                1, "EXP-2026-1234", "Carlos Mora", "Paraiso, Cartago",
+                new BigDecimal("3500.00"), "PENDIENTE", LocalDateTime.now());
 
-        when(envioService.crearEnvio(any(EnvioRequestDTO.class))).thenReturn(respuesta);
+        when(envioService.crearEnvioSimple(any(CrearEnvioDTO.class))).thenReturn(respuesta);
 
-        mockMvc.perform(post("/api/envios")
+        mockMvc.perform(post("/api/v1/envios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "codigoRastreo":"EXP-1234",
+                                  "destinatario":"Carlos Mora",
                                   "direccionDestino":"Paraiso, Cartago",
-                                  "pesoKg":5.00,
-                                  "costo":3500.00,
-                                  "vehiculoId":1,
-                                  "conductorId":1
+                                  "montoFlete":3500.00
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.codigoRastreo").value("EXP-1234"));
+                .andExpect(jsonPath("$.codigoRastreo").value("EXP-2026-1234"));
+    }
+
+    @Test
+    void buscarPorCodigoRastreo_Existente_Retorna200() throws Exception {
+        EnvioDTO respuesta = new EnvioDTO(
+                1, "EXP-2026-1234", "Carlos Mora", "Paraiso, Cartago",
+                new BigDecimal("3500.00"), "PENDIENTE", LocalDateTime.now());
+
+        when(envioService.buscarPorCodigoRastreo("EXP-2026-1234")).thenReturn(respuesta);
+
+        mockMvc.perform(get("/api/v1/envios/rastreo/EXP-2026-1234"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.destinatario").value("Carlos Mora"));
+    }
+
+    @Test
+    void buscarPorCodigoRastreo_Inexistente_Retorna404() throws Exception {
+        when(envioService.buscarPorCodigoRastreo("EXP-2026-0000"))
+                .thenThrow(new ResourceNotFoundException("Envío no encontrado"));
+
+        mockMvc.perform(get("/api/v1/envios/rastreo/EXP-2026-0000"))
+                .andExpect(status().isNotFound());
     }
 }

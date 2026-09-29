@@ -64,16 +64,27 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/envios/optimizados")
-                        .hasAnyRole("ADMIN", "OPERADOR", "CONDUCTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/envios/**")
-                        .hasAnyRole("ADMIN", "OPERADOR", "CONDUCTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/envios")
-                        .hasAnyRole("ADMIN", "OPERADOR")
-                        .requestMatchers(HttpMethod.PATCH, "/api/envios/*/estado")
-                        .hasAnyRole("ADMIN", "OPERADOR", "CONDUCTOR")
-                        .requestMatchers(HttpMethod.GET, "/api/envios/*/bitacora")
-                        .hasAnyRole("ADMIN", "OPERADOR")
+                        // Lab 10: la SPA Angular (expresofast-frontend) no maneja login/JWT,
+                        // tal como lo describe el enunciado (HttpClient sin Authorization header),
+                        // así que esta API queda abierta.
+                        //
+                        // REFERENCIA - reglas por rol que protegían estas mismas operaciones
+                        // cuando vivían en /api/envios/** (consola legado, Lab 6-8). Si más
+                        // adelante se agrega login/interceptor JWT a Angular, restaurar así
+                        // (cambiando el path a /api/v1/envios/... y borrando la línea de permitAll):
+                        //
+                        // .requestMatchers(HttpMethod.GET, "/api/v1/envios/optimizados")
+                        //     .hasAnyRole("ADMIN", "OPERADOR", "CONDUCTOR")
+                        // .requestMatchers(HttpMethod.POST, "/api/v1/envios")
+                        //     .hasAnyRole("ADMIN", "OPERADOR")
+                        // .requestMatchers(HttpMethod.PATCH, "/api/v1/envios/*/estado")
+                        //     .hasAnyRole("ADMIN", "OPERADOR", "CONDUCTOR")
+                        // .requestMatchers(HttpMethod.GET, "/api/v1/envios/*/bitacora")
+                        //     .hasAnyRole("ADMIN", "OPERADOR")
+                        // .requestMatchers(HttpMethod.GET, "/api/v1/envios/**")
+                        //     .hasAnyRole("ADMIN", "OPERADOR", "CONDUCTOR")
+                        //
+                        .requestMatchers("/api/v1/envios/**").permitAll()
                         .requestMatchers("/api/vehiculos/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, userDetailsService),
@@ -84,7 +95,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5500", "http://127.0.0.1:5500"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:4200"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
