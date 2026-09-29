@@ -24,6 +24,6 @@ export class EnvioService {
   }
 
   actualizarEstado(id: number, nuevoEstado: EstadoEnvio): Observable<Envio> {
-    return this.http.patch<Envio>(`${this.baseUrl}/${id}/estado`, { estado: nuevoEstado });
+    return this.http.patch<Envio>(`${this.baseUrl}/${id}/estado`, { nuevoEstado });
   }
 }

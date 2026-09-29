@@ -1,8 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { EnvioService } from '../../services/envio.service';
+import { Envio, EstadoEnvio } from '../../models/envio.model';
 
-// TODO 1: importa EnvioService y Envio
+const PROGRESO_POR_ESTADO: Record<EstadoEnvio, number> = {
+  PENDIENTE: 25,
+  EN_TRANSITO: 60,
+  ENTREGADO: 100,
+  CANCELADO: 0,
+};
 
 @Component({
   selector: 'app-envio-tracking',
@@ -11,28 +18,25 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './envio-tracking.component.css',
 })
 export class EnvioTrackingComponent {
-  // TODO 2: inyecta EnvioService.
-  // private envioService = inject(EnvioService);
+  private envioService = inject(EnvioService);
 
-  // TODO 3: variable ligada con [(ngModel)] al campo de búsqueda.
-  // codigo = '';
+  codigo = '';
+  envio: Envio | null = null;
+  errorMensaje = '';
 
-  // TODO 4: dónde guardar el envío encontrado (o null si no hay búsqueda / no existe).
-  // envio: Envio | null = null;
-  // errorMensaje = '';
+  buscar(): void {
+    this.errorMensaje = '';
+    this.envio = null;
 
-  // TODO 5: método que dispara el botón "Buscar".
-  // buscar(): void {
-  //   this.errorMensaje = '';
-  //   this.envioService.obtenerPorRastreo(this.codigo).subscribe({
-  //     next: (data) => (this.envio = data),
-  //     error: () => {
-  //       this.envio = null;
-  //       this.errorMensaje = 'No se encontró un envío con ese código de rastreo.';
-  //     },
-  //   });
-  // }
+    this.envioService.obtenerPorRastreo(this.codigo).subscribe({
+      next: (data) => (this.envio = data),
+      error: () => {
+        this.errorMensaje = 'No se encontró un envío con ese código de rastreo.';
+      },
+    });
+  }
 
-  // TODO 6 (reto): función auxiliar que traduzca el estado a un porcentaje de progreso
-  // para la barra visual, ej: PENDIENTE=25, EN_TRANSITO=60, ENTREGADO=100, CANCELADO=0.
+  progreso(): number {
+    return this.envio ? PROGRESO_POR_ESTADO[this.envio.estado] : 0;
+  }
 }

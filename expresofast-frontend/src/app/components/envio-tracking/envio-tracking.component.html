@@ -1,22 +1,19 @@
 <h2>Rastrear guía</h2>
 
-<!--
-  TODO: campo de búsqueda + botón, y luego la ficha de detalle si "envio" tiene datos.
+<label>
+  Código de rastreo
+  <input type="text" name="codigo" [(ngModel)]="codigo" placeholder="EXP-2026-1001" />
+</label>
+<button (click)="buscar()">Buscar</button>
 
-  Ejemplo de estructura a completar:
+<p *ngIf="errorMensaje">{{ errorMensaje }}</p>
 
-  <label>
-    Código de rastreo
-    <input type="text" name="codigo" [(ngModel)]="codigo" placeholder="EXP-2026-1001" />
-  </label>
-  <button (click)="buscar()">Buscar</button>
+<div *ngIf="envio">
+  <p>Destinatario: {{ envio.destinatario }}</p>
+  <p>Dirección: {{ envio.direccionDestino }}</p>
+  <p>Estado: {{ envio.estado }}</p>
 
-  <p *ngIf="errorMensaje">{{ errorMensaje }}</p>
-
-  <div *ngIf="envio">
-    <p>Destinatario: {{ envio.destinatario }}</p>
-    <p>Dirección: {{ envio.direccionDestino }}</p>
-    <p>Estado: {{ envio.estado }}</p>
-    -- TODO: barra de progreso visual según el estado (ver TODO 6 del .ts)
+  <div class="progreso-fondo">
+    <div class="progreso-relleno" [style.width.%]="progreso()"></div>
   </div>
--->
+</div>
