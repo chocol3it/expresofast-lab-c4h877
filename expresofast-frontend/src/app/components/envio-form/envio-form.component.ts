@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EnvioService } from '../../services/envio.service';
@@ -14,22 +14,22 @@ export class EnvioFormComponent {
   private envioService = inject(EnvioService);
 
   form: CrearEnvioPayload = { destinatario: '', direccionDestino: '', montoFlete: 0 };
-  mensaje = '';
+  mensaje = signal('');
 
   registrar(): void {
     if (!this.form.destinatario || !this.form.direccionDestino) {
-      this.mensaje = 'Complete los campos obligatorios.';
+      this.mensaje.set('Complete los campos obligatorios.');
       return;
     }
 
     this.envioService.crearEnvio(this.form).subscribe({
       next: () => {
-        this.mensaje = 'Envío registrado con éxito.';
+        this.mensaje.set('Envío registrado con éxito.');
         this.form = { destinatario: '', direccionDestino: '', montoFlete: 0 };
       },
       error: (err) => {
         console.error('Error al registrar el envío', err);
-        this.mensaje = 'Error al registrar el envío.';
+        this.mensaje.set('Error al registrar el envío.');
       },
     });
   }

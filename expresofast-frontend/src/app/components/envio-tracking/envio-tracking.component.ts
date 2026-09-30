@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EnvioService } from '../../services/envio.service';
@@ -21,22 +21,23 @@ export class EnvioTrackingComponent {
   private envioService = inject(EnvioService);
 
   codigo = '';
-  envio: Envio | null = null;
-  errorMensaje = '';
+  envio = signal<Envio | null>(null);
+  errorMensaje = signal('');
 
   buscar(): void {
-    this.errorMensaje = '';
-    this.envio = null;
+    this.errorMensaje.set('');
+    this.envio.set(null);
 
     this.envioService.obtenerPorRastreo(this.codigo).subscribe({
-      next: (data) => (this.envio = data),
+      next: (data) => this.envio.set(data),
       error: () => {
-        this.errorMensaje = 'No se encontró un envío con ese código de rastreo.';
+        this.errorMensaje.set('No se encontró un envío con ese código de rastreo.');
       },
     });
   }
 
   progreso(): number {
-    return this.envio ? PROGRESO_POR_ESTADO[this.envio.estado] : 0;
+    const envio = this.envio();
+    return envio ? PROGRESO_POR_ESTADO[envio.estado] : 0;
   }
 }

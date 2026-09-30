@@ -6,9 +6,9 @@
 </label>
 <button (click)="buscar()">Buscar</button>
 
-<p *ngIf="errorMensaje">{{ errorMensaje }}</p>
+<p *ngIf="errorMensaje()">{{ errorMensaje() }}</p>
 
-<div *ngIf="envio">
+<div *ngIf="envio() as envio">
   <p>Destinatario: {{ envio.destinatario }}</p>
   <p>Dirección: {{ envio.direccionDestino }}</p>
   <p>Estado: {{ envio.estado }}</p>

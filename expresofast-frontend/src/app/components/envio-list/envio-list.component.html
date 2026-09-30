@@ -12,7 +12,7 @@
     </tr>
   </thead>
   <tbody>
-    <tr *ngFor="let envio of envios">
+    <tr *ngFor="let envio of envios()">
       <td>{{ envio.codigoRastreo }}</td>
       <td>{{ envio.destinatario }}</td>
       <td>{{ envio.direccionDestino }}</td>
@@ -32,4 +32,4 @@
   </tbody>
 </table>
 
-<p *ngIf="envios.length === 0">No hay envíos registrados.</p>
+<p *ngIf="envios().length === 0">No hay envíos registrados.</p>
