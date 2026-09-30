@@ -1,0 +1,15 @@
+.progreso-fondo {
+  width: 100%;
+  max-width: 400px;
+  height: 1rem;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progreso-relleno {
+  height: 100%;
+  background-color: #2563eb;
+  transition: width 0.3s ease;
+}

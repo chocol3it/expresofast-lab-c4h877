@@ -1,0 +1,12 @@
+<header class="navbar">
+  <span class="navbar-brand">{{ title() }}</span>
+  <nav>
+    <a routerLink="/envios" routerLinkActive="active">Envíos</a>
+    <a routerLink="/nuevo-envio" routerLinkActive="active">Nuevo envío</a>
+    <a routerLink="/rastreo" routerLinkActive="active">Rastrear guía</a>
+  </nav>
+</header>
+
+<main>
+  <router-outlet />
+</main>

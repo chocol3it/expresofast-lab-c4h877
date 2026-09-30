@@ -1,0 +1,22 @@
+<h2>Registrar nuevo envío</h2>
+
+<form (ngSubmit)="registrar()">
+  <label>
+    Destinatario
+    <input type="text" name="destinatario" [(ngModel)]="form.destinatario" />
+  </label>
+
+  <label>
+    Dirección de destino
+    <input type="text" name="direccionDestino" [(ngModel)]="form.direccionDestino" />
+  </label>
+
+  <label>
+    Monto de flete
+    <input type="number" name="montoFlete" [(ngModel)]="form.montoFlete" />
+  </label>
+
+  <button type="submit">Registrar envío</button>
+</form>
+
+<p *ngIf="mensaje()">{{ mensaje() }}</p>

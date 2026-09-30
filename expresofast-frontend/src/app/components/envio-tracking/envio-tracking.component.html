@@ -1,0 +1,19 @@
+<h2>Rastrear guía</h2>
+
+<label>
+  Código de rastreo
+  <input type="text" name="codigo" [(ngModel)]="codigo" placeholder="EXP-2026-1001" />
+</label>
+<button (click)="buscar()">Buscar</button>
+
+<p *ngIf="errorMensaje()">{{ errorMensaje() }}</p>
+
+<div *ngIf="envio() as envio">
+  <p>Destinatario: {{ envio.destinatario }}</p>
+  <p>Dirección: {{ envio.direccionDestino }}</p>
+  <p>Estado: {{ envio.estado }}</p>
+
+  <div class="progreso-fondo">
+    <div class="progreso-relleno" [style.width.%]="progreso()"></div>
+  </div>
+</div>

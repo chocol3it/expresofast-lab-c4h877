@@ -1,0 +1,35 @@
+<h2>Envíos</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Código</th>
+      <th>Destinatario</th>
+      <th>Dirección</th>
+      <th>Flete</th>
+      <th>Estado</th>
+      <th>Cambiar estado</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let envio of envios()">
+      <td>{{ envio.codigoRastreo }}</td>
+      <td>{{ envio.destinatario }}</td>
+      <td>{{ envio.direccionDestino }}</td>
+      <td>{{ envio.montoFlete }}</td>
+      <td>
+        <span class="badge" [class]="envio.estado.toLowerCase()">{{ envio.estado }}</span>
+      </td>
+      <td>
+        <select
+          [ngModel]="envio.estado"
+          (ngModelChange)="cambiarEstado(envio, $event)"
+        >
+          <option *ngFor="let estado of estados" [value]="estado">{{ estado }}</option>
+        </select>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p *ngIf="envios().length === 0">No hay envíos registrados.</p>

@@ -1,0 +1,34 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.badge.pendiente {
+  background-color: #d4a017;
+}
+
+.badge.en_transito {
+  background-color: #2563eb;
+}
+
+.badge.entregado {
+  background-color: #16a34a;
+}
+
+.badge.cancelado {
+  background-color: #dc2626;
+}

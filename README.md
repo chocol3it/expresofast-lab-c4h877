@@ -60,10 +60,10 @@ Contraseña para los tres usuarios: **`Password123!`**
 
 ### Backend
 
-1. Copie `backend/application.properties.template` a
-   `backend/src/main/resources/application.properties` y complete las credenciales de su
+1. Copie `expresofast-backend/application.properties.template` a
+   `expresofast-backend/src/main/resources/application.properties` y complete las credenciales de su
    SQL Server local y una clave `app.jwt.secret` propia (mínimo 32 caracteres).
-2. Desde `backend/`, ejecute:
+2. Desde `expresofast-backend/`, ejecute:
 
    ```powershell
    mvn spring-boot:run
@@ -71,12 +71,20 @@ Contraseña para los tres usuarios: **`Password123!`**
 
    El API queda disponible en `http://localhost:8080`.
 
-### Frontend
+### Frontend (SPA Angular - Laboratorio 10)
 
-El frontend es estático (HTML/CSS/JS puro) y consume la API en `http://localhost:8080/api`.
+El cliente vigente es la SPA en `expresofast-frontend/` (Angular Standalone), que consume la
+API en `http://localhost:8080/api/v1`. Ver la sección **Laboratorio 10** más abajo para
+instrucciones de ejecución.
+
+### Frontend legado (Laboratorios 8-9, archivado)
+
+El cliente estático (HTML/CSS/JS puro con Fetch API) de los Laboratorios 8 y 9 se conserva
+como referencia en `legacy/vanilla-js-console/` y consume la API en
+`http://localhost:8080/api`. Ya no es el entregable activo, pero puede seguir ejecutándose:
 
 1. Deje el backend corriendo (ver sección anterior).
-2. Abra la carpeta `frontend/` con VS Code y ejecute **Live Server** sobre `index.html`.
+2. Abra la carpeta `legacy/vanilla-js-console/` con VS Code y ejecute **Live Server** sobre `index.html`.
    El servidor debe quedar en el puerto **5500** (`http://localhost:5500` o
    `http://127.0.0.1:5500`), que es el origen permitido por CORS en el backend
    (`WebConfig` y `SecurityConfig`).
@@ -113,7 +121,7 @@ web, con verificación automática de cobertura mediante JaCoCo.
 
 ### Ejecutar las pruebas
 
-Desde `backend/`:
+Desde `expresofast-backend/`:
 
 ```powershell
 mvn clean test
@@ -134,7 +142,7 @@ el paquete `cr.ac.ucr.paraiso.ie.c4h877.expresofast.business` es de al menos **8
 Tras ejecutar `mvn clean test` o `mvn clean verify`, abra en el navegador:
 
 ```
-backend/target/site/jacoco/index.html
+expresofast-backend/target/site/jacoco/index.html
 ```
 
 ### Suite de pruebas incluida
@@ -183,7 +191,7 @@ o dirección) y `estado`. Internamente `EnvioService.listarPaginado` arma un
 `Page<Envio>` que se mapea a `Page<EnvioDTO>`. La respuesta JSON trae `content`, `number`,
 `totalPages`, `totalElements`, `first` y `last`, que es lo que consume
 `frontend/paginacion.js` para pintar la tabla y habilitar/deshabilitar los botones de
-navegación.
+navegación (`legacy/vanilla-js-console/paginacion.js`, archivado).
 
 ### Notas de depuración
 
@@ -192,13 +200,40 @@ navegación.
 - Las consultas paginadas de `Envio` no usan `JOIN FETCH` sobre colecciones (el modelo solo
   tiene relaciones `@ManyToOne`), por lo que no aplica la advertencia `HHH000104`.
 
+## Laboratorio 10 - SPA Angular Standalone
+
+El cliente web se migró a una Single Page Application con **Angular Standalone**, ubicada en
+`expresofast-frontend/`, que consume la API RESTful versionada en `/api/v1/envios`.
+
+### Ejecutar el frontend
+
+```powershell
+cd expresofast-frontend
+npm install
+npm start
+```
+
+La aplicación queda disponible en `http://localhost:4200` y espera que el backend esté
+corriendo en `http://localhost:8080` (ver `src/environments/environment.ts` para el
+`API_URL` configurado).
+
+### Vistas
+
+| Ruta           | Componente             | Descripción                                              |
+|----------------|-------------------------|-----------------------------------------------------------|
+| `/envios`      | `EnvioListComponent`    | Tabla de envíos con insignia de estado y cambio de estado |
+| `/nuevo-envio` | `EnvioFormComponent`    | Formulario de registro de un nuevo envío                  |
+| `/rastreo`     | `EnvioTrackingComponent`| Búsqueda de un envío por código de rastreo                |
+
 ## Estructura del Repositorio
 
 ```
 expresofast-lab-c4h877/
-├── backend/
+├── expresofast-backend/       <- API RESTful Spring Boot (Java 21)
+├── expresofast-frontend/      <- SPA Angular Standalone (Laboratorio 10)
+├── legacy/
+│   └── vanilla-js-console/    <- Cliente HTML/CSS/JS de los Laboratorios 8-9 (archivado)
 ├── database/
-├── frontend/
 ├── docs/
 └── README.md
 ```
