@@ -41,9 +41,12 @@ import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Usuario;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Vehiculo;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.BitacoraResponseDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CambioEstadoDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CrearEnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioRequestDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.PaqueteDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.DuplicateResourceException;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.InvalidStateTransitionException;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.ResourceNotFoundException;
 
@@ -450,5 +453,149 @@ public class EnvioServiceTest {
         assertEquals(1, resultado.size());
         assertEquals("ENTREGADO", resultado.get(0).estado());
         assertEquals("Jose Fernandez", resultado.get(0).destinatario());
+    }
+
+    @Test
+    void crearEnvioSimple_DatosValidos_GuardaEnvioConPaquetes() {
+        CrearEnvioDTO solicitud = new CrearEnvioDTO();
+        solicitud.setCodigoRastreo("EXP-2026-1234");
+        solicitud.setDestinatario("Carlos Mora");
+        solicitud.setDireccionDestino("Paraiso, Cartago");
+        solicitud.setMontoFlete(new BigDecimal("3500.00"));
+        solicitud.setPaquetes(List.of(
+                new PaqueteDTO(null, "Caja de libros", new BigDecimal("2.50")),
+                new PaqueteDTO(null, "Caja de ropa", new BigDecimal("1.20"))));
+
+        Vehiculo vehiculo = new Vehiculo();
+        vehiculo.setPlaca("102938");
+        Conductor conductor = new Conductor();
+
+        when(envioRepository.findByCodigoRastreo("EXP-2026-1234")).thenReturn(Optional.empty());
+        when(vehiculoRepository.findAll()).thenReturn(List.of(vehiculo));
+        when(conductorRepository.findAll()).thenReturn(List.of(conductor));
+        when(envioRepository.save(any(Envio.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EnvioDTO resultado = envioService.crearEnvioSimple(solicitud);
+
+        ArgumentCaptor<Envio> captor = ArgumentCaptor.forClass(Envio.class);
+        verify(envioRepository).save(captor.capture());
+
+        Envio envioGuardado = captor.getValue();
+        assertEquals("EXP-2026-1234", envioGuardado.getCodigoRastreo());
+        assertEquals(2, envioGuardado.getPaquetes().size());
+        assertEquals(envioGuardado, envioGuardado.getPaquetes().get(0).getEnvio());
+        assertEquals(new BigDecimal("3.70"), envioGuardado.getPesoKg());
+
+        assertEquals("EXP-2026-1234", resultado.codigoRastreo());
+        assertEquals(2, resultado.paquetes().size());
+    }
+
+    @Test
+    void crearEnvioSimple_CodigoRastreoDuplicado_LanzaExcepcion() {
+        CrearEnvioDTO solicitud = new CrearEnvioDTO();
+        solicitud.setCodigoRastreo("EXP-2026-1234");
+        solicitud.setPaquetes(List.of(new PaqueteDTO(null, "Caja", new BigDecimal("1.00"))));
+
+        when(envioRepository.findByCodigoRastreo("EXP-2026-1234"))
+                .thenReturn(Optional.of(new Envio()));
+
+        assertThrows(DuplicateResourceException.class,
+                () -> envioService.crearEnvioSimple(solicitud));
+
+        verify(envioRepository, never()).save(any(Envio.class));
+    }
+
+    @Test
+    void existeCodigoRastreo_CodigoExistente_RetornaTrue() {
+        when(envioRepository.findByCodigoRastreo("EXP-2026-1234"))
+                .thenReturn(Optional.of(new Envio()));
+
+        assertEquals(true, envioService.existeCodigoRastreo("EXP-2026-1234"));
+    }
+
+    @Test
+    void existeCodigoRastreo_CodigoLibre_RetornaFalse() {
+        when(envioRepository.findByCodigoRastreo("EXP-2026-9999")).thenReturn(Optional.empty());
+
+        assertEquals(false, envioService.existeCodigoRastreo("EXP-2026-9999"));
+    }
+
+    @Test
+    void actualizarEstado_TransicionValida_RegistraBitacoraYRetornaDTO() {
+        Envio envio = new Envio(1, "EXP-1234", "Paraiso, Cartago",
+                new BigDecimal("5.00"), new BigDecimal("3500.00"), "PENDIENTE", null, null);
+
+        CambioEstadoDTO cambioEstado = new CambioEstadoDTO();
+        cambioEstado.setNuevoEstado("EN_TRANSITO");
+        cambioEstado.setObservaciones("Sale de bodega");
+
+        Usuario usuario = new Usuario();
+        usuario.setUsername("operador1");
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("operador1");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        when(envioRepository.findById(1)).thenReturn(Optional.of(envio));
+        when(usuarioRepository.findByUsername("operador1")).thenReturn(Optional.of(usuario));
+
+        EnvioResponseDTO resultado = envioService.actualizarEstado(1, cambioEstado);
+
+        assertEquals("EN_TRANSITO", resultado.getEstadoEnvio());
+        verify(bitacoraEnvioRepository).save(any());
+    }
+
+    @Test
+    void buscarPorCodigoRastreo_Existente_RetornaDTO() {
+        Envio envio = new Envio(1, "EXP-2026-1234", "Paraiso, Cartago",
+                new BigDecimal("5.00"), new BigDecimal("3500.00"), "PENDIENTE", null, null);
+        envio.setDestinatario("Carlos Mora");
+
+        when(envioRepository.findByCodigoRastreo("EXP-2026-1234")).thenReturn(Optional.of(envio));
+
+        EnvioDTO resultado = envioService.buscarPorCodigoRastreo("EXP-2026-1234");
+
+        assertEquals("Carlos Mora", resultado.destinatario());
+    }
+
+    @Test
+    void buscarPorCodigoRastreo_Inexistente_LanzaExcepcion() {
+        when(envioRepository.findByCodigoRastreo("EXP-0000")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> envioService.buscarPorCodigoRastreo("EXP-0000"));
+    }
+
+    @Test
+    void actualizarEstadoSimple_EstadoValido_ActualizaYRetornaDTO() {
+        Envio envio = new Envio(1, "EXP-2026-1234", "Paraiso, Cartago",
+                new BigDecimal("5.00"), new BigDecimal("3500.00"), "PENDIENTE", null, null);
+
+        when(envioRepository.findById(1)).thenReturn(Optional.of(envio));
+        when(envioRepository.save(envio)).thenReturn(envio);
+
+        EnvioDTO resultado = envioService.actualizarEstadoSimple(1, "EN_TRANSITO");
+
+        assertEquals("EN_TRANSITO", resultado.estado());
+    }
+
+    @Test
+    void actualizarEstadoSimple_EstadoInvalido_LanzaExcepcion() {
+        Envio envio = new Envio(1, "EXP-2026-1234", "Paraiso, Cartago",
+                new BigDecimal("5.00"), new BigDecimal("3500.00"), "PENDIENTE", null, null);
+
+        when(envioRepository.findById(1)).thenReturn(Optional.of(envio));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> envioService.actualizarEstadoSimple(1, "DESCONOCIDO"));
+
+        verify(envioRepository, never()).save(any(Envio.class));
+    }
+
+    @Test
+    void actualizarEstadoSimple_EnvioInexistente_LanzaExcepcion() {
+        when(envioRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> envioService.actualizarEstadoSimple(99, "EN_TRANSITO"));
     }
 }
