@@ -8,6 +8,7 @@ import cr.ac.ucr.paraiso.ie.c4h877.expresofast.data.VehiculoRepository;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.BitacoraEnvio;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Conductor;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Envio;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Paquete;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Usuario;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain.Vehiculo;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.BitacoraResponseDTO;
@@ -16,15 +17,15 @@ import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CrearEnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioRequestDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.PaqueteDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.DuplicateResourceException;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.InvalidStateTransitionException;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.ResourceNotFoundException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.Year;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -183,24 +184,55 @@ public class EnvioService {
     }
 
     // Lab 10: registro simplificado de envíos desde la SPA Angular (sin vehículo/conductor).
+    // Lab 11: el código de rastreo ahora lo escribe el operador (validado en tiempo real
+    // contra /check-tracking) y el envío se guarda junto con su lista de paquetes (1:N)
+    // en la misma transacción.
     @Transactional
     public EnvioDTO crearEnvioSimple(CrearEnvioDTO datos) {
+        if (envioRepository.findByCodigoRastreo(datos.getCodigoRastreo()).isPresent()) {
+            throw new DuplicateResourceException(
+                    "El número de rastreo [" + datos.getCodigoRastreo() + "] ya está en uso");
+        }
+
         Vehiculo vehiculo = vehiculoRepository.findAll().stream().findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("No hay vehículos registrados"));
         Conductor conductor = conductorRepository.findAll().stream().findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("No hay conductores registrados"));
 
         Envio envio = new Envio();
-        envio.setCodigoRastreo(generarCodigoRastreo());
+        envio.setCodigoRastreo(datos.getCodigoRastreo());
         envio.setDestinatario(datos.getDestinatario());
         envio.setDireccionDestino(datos.getDireccionDestino());
         envio.setCosto(datos.getMontoFlete());
-        envio.setPesoKg(BigDecimal.ONE);
+        envio.setPesoKg(sumarPesoPaquetes(datos.getPaquetes()));
         envio.setVehiculo(vehiculo);
         envio.setConductor(conductor);
         envio.setEstadoEnvio("PENDIENTE");
+        envio.setPaquetes(datos.getPaquetes().stream()
+                .map(p -> paqueteDesdeDTO(p, envio))
+                .toList());
 
         return toEnvioDTO(envioRepository.save(envio));
+    }
+
+    // Lab 11: respaldo del validador asíncrono de Angular (GET /check-tracking/{codigo}).
+    @Transactional(readOnly = true)
+    public boolean existeCodigoRastreo(String codigoRastreo) {
+        return envioRepository.findByCodigoRastreo(codigoRastreo).isPresent();
+    }
+
+    private Paquete paqueteDesdeDTO(PaqueteDTO dto, Envio envio) {
+        Paquete paquete = new Paquete();
+        paquete.setDescripcion(dto.descripcion());
+        paquete.setPesoKg(dto.pesoKg());
+        paquete.setEnvio(envio);
+        return paquete;
+    }
+
+    private BigDecimal sumarPesoPaquetes(List<PaqueteDTO> paquetes) {
+        return paquetes.stream()
+                .map(PaqueteDTO::pesoKg)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     // Lab 10: actualización simple de estado desde la SPA Angular (sin bitácora).
@@ -216,15 +248,6 @@ public class EnvioService {
 
         envio.setEstadoEnvio(nuevoEstado);
         return toEnvioDTO(envioRepository.save(envio));
-    }
-
-    private String generarCodigoRastreo() {
-        String codigo;
-        do {
-            int numero = ThreadLocalRandom.current().nextInt(1000, 10000);
-            codigo = "EXP-" + Year.now() + "-" + numero;
-        } while (envioRepository.findByCodigoRastreo(codigo).isPresent());
-        return codigo;
     }
 
     public double calcularTarifa(double pesoKg, double distanciaKm) {
@@ -292,6 +315,9 @@ public class EnvioService {
                 envio.getDireccionDestino(),
                 envio.getCosto(),
                 envio.getEstadoEnvio(),
-                envio.getFechaCreacion());
+                envio.getFechaCreacion(),
+                envio.getPaquetes().stream()
+                        .map(p -> new PaqueteDTO(p.getId(), p.getDescripcion(), p.getPesoKg()))
+                        .toList());
     }
 }
