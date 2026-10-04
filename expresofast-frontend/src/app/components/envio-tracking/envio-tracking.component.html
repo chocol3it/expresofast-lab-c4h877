@@ -16,4 +16,9 @@
   <div class="progreso-fondo">
     <div class="progreso-relleno" [style.width.%]="progreso()"></div>
   </div>
+
+  <h3>Paquetes</h3>
+  <ul>
+    <li *ngFor="let paquete of envio.paquetes">{{ paquete.descripcion }} - {{ paquete.pesoKg }} kg</li>
+  </ul>
 </div>
