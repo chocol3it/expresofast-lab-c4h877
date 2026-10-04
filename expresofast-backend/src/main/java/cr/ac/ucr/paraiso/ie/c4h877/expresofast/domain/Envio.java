@@ -2,6 +2,8 @@ package cr.ac.ucr.paraiso.ie.c4h877.expresofast.domain;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "Envio")
@@ -38,6 +40,9 @@ public class Envio extends AuditableEntity {
     @JoinColumn(name = "conductor_id", nullable = false)
     private Conductor conductor;
 
+    // Lab 11: un envio puede tener varios paquetes (1:N).
+    @OneToMany(mappedBy = "envio", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Paquete> paquetes = new ArrayList<>();
 
     public Envio(Integer id, String codigoRastreo, String direccionDestino, BigDecimal pesoKg, BigDecimal costo,
             String estadoEnvio, Vehiculo vehiculo, Conductor conductor) {
@@ -124,5 +129,13 @@ public class Envio extends AuditableEntity {
 
     public void setConductor(Conductor conductor) {
         this.conductor = conductor;
+    }
+
+    public List<Paquete> getPaquetes() {
+        return paquetes;
+    }
+
+    public void setPaquetes(List<Paquete> paquetes) {
+        this.paquetes = paquetes;
     }
 }
