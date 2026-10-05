@@ -26,4 +26,9 @@ export class EnvioService {
   actualizarEstado(id: number, nuevoEstado: EstadoEnvio): Observable<Envio> {
     return this.http.patch<Envio>(`${this.baseUrl}/${id}/estado`, { nuevoEstado });
   }
+
+  // Lab 11: validador asíncrono del número de rastreo (true = ya está en uso).
+  checkTracking(codigo: string): Observable<boolean> {
+    return this.http.get<boolean>(`${this.baseUrl}/check-tracking/${codigo}`);
+  }
 }

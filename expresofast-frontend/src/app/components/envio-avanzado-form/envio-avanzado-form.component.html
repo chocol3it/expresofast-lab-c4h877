@@ -1,0 +1,70 @@
+<h2>Registrar envío avanzado</h2>
+
+<form [formGroup]="form" (ngSubmit)="registrar()">
+  <label>
+    Número de rastreo
+    <input type="text" formControlName="numeroTracking" placeholder="EXP-2026-1234" />
+  </label>
+  <p class="error" *ngIf="form.controls.numeroTracking.touched && form.controls.numeroTracking.hasError('required')">
+    El número de rastreo es obligatorio.
+  </p>
+  <p class="error" *ngIf="form.controls.numeroTracking.touched && form.controls.numeroTracking.hasError('pattern')">
+    Formato inválido. Ejemplo: EXP-2026-1234.
+  </p>
+  <p class="error" *ngIf="form.controls.numeroTracking.hasError('trackingTomado')">
+    Este número de rastreo ya está en uso.
+  </p>
+  <p class="hint" *ngIf="form.controls.numeroTracking.pending">Verificando disponibilidad...</p>
+
+  <label>
+    Destinatario
+    <input type="text" formControlName="destinatario" />
+  </label>
+
+  <label>
+    Dirección de destino
+    <input type="text" formControlName="direccionDestino" />
+  </label>
+
+  <label>
+    Monto de flete
+    <input type="number" step="0.01" formControlName="montoFlete" />
+  </label>
+
+  <label>
+    Fecha de despacho
+    <input type="date" formControlName="fechaDespacho" />
+  </label>
+
+  <label>
+    Fecha de entrega estimada
+    <input type="date" formControlName="fechaEntregaEstimada" />
+  </label>
+  <p class="error" *ngIf="form.hasError('fechasInvalidas')">
+    La fecha de entrega estimada debe ser posterior a la fecha de despacho.
+  </p>
+
+  <fieldset formArrayName="paquetes">
+    <legend>Paquetes</legend>
+
+    <div *ngFor="let paquete of paquetesArray.controls; let i = index" [formGroupName]="i" class="paquete-row">
+      <label>
+        Descripción
+        <input type="text" formControlName="descripcion" />
+      </label>
+      <label>
+        Peso (kg)
+        <input type="number" step="0.01" formControlName="pesoKg" />
+      </label>
+      <button type="button" (click)="eliminarPaquete(i)" [disabled]="paquetesArray.length <= 1">
+        X
+      </button>
+    </div>
+
+    <button type="button" (click)="agregarPaquete()">+ Añadir Paquete</button>
+  </fieldset>
+
+  <button type="submit" [disabled]="form.invalid || enviando()">Registrar envío</button>
+</form>
+
+<p *ngIf="mensaje()">{{ mensaje() }}</p>

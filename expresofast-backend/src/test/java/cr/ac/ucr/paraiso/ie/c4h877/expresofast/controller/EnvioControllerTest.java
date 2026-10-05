@@ -22,10 +22,12 @@ import cr.ac.ucr.paraiso.ie.c4h877.expresofast.business.EnvioService;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.CrearEnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.EnvioResponseDTO;
+import cr.ac.ucr.paraiso.ie.c4h877.expresofast.dto.PaqueteDTO;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.GlobalExceptionHandler;
 import cr.ac.ucr.paraiso.ie.c4h877.expresofast.exception.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @WebMvcTest(EnvioController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -84,7 +86,8 @@ class EnvioControllerTest {
     void registrarEnvio_Valido_Retorna201() throws Exception {
         EnvioDTO respuesta = new EnvioDTO(
                 1, "EXP-2026-1234", "Carlos Mora", "Paraiso, Cartago",
-                new BigDecimal("3500.00"), "PENDIENTE", LocalDateTime.now());
+                new BigDecimal("3500.00"), "PENDIENTE", LocalDateTime.now(),
+                List.of(new PaqueteDTO(1, "Caja de libros", new BigDecimal("2.50"))));
 
         when(envioService.crearEnvioSimple(any(CrearEnvioDTO.class))).thenReturn(respuesta);
 
@@ -92,20 +95,58 @@ class EnvioControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "codigoRastreo":"EXP-2026-1234",
                                   "destinatario":"Carlos Mora",
                                   "direccionDestino":"Paraiso, Cartago",
-                                  "montoFlete":3500.00
+                                  "montoFlete":3500.00,
+                                  "paquetes":[{"descripcion":"Caja de libros","pesoKg":2.50}]
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.codigoRastreo").value("EXP-2026-1234"));
+                .andExpect(jsonPath("$.codigoRastreo").value("EXP-2026-1234"))
+                .andExpect(jsonPath("$.paquetes[0].descripcion").value("Caja de libros"));
+    }
+
+    @Test
+    void registrarEnvio_SinPaquetes_Retorna400() throws Exception {
+        mockMvc.perform(post("/api/v1/envios")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "codigoRastreo":"EXP-2026-1234",
+                                  "destinatario":"Carlos Mora",
+                                  "direccionDestino":"Paraiso, Cartago",
+                                  "montoFlete":3500.00,
+                                  "paquetes":[]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.invalidFields.paquetes").exists());
+    }
+
+    @Test
+    void checkTracking_CodigoExistente_RetornaTrue() throws Exception {
+        when(envioService.existeCodigoRastreo("EXP-2026-1234")).thenReturn(true);
+
+        mockMvc.perform(get("/api/v1/envios/check-tracking/EXP-2026-1234"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(true));
+    }
+
+    @Test
+    void checkTracking_CodigoLibre_RetornaFalse() throws Exception {
+        when(envioService.existeCodigoRastreo("EXP-2026-9999")).thenReturn(false);
+
+        mockMvc.perform(get("/api/v1/envios/check-tracking/EXP-2026-9999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(false));
     }
 
     @Test
     void buscarPorCodigoRastreo_Existente_Retorna200() throws Exception {
         EnvioDTO respuesta = new EnvioDTO(
                 1, "EXP-2026-1234", "Carlos Mora", "Paraiso, Cartago",
-                new BigDecimal("3500.00"), "PENDIENTE", LocalDateTime.now());
+                new BigDecimal("3500.00"), "PENDIENTE", LocalDateTime.now(), List.of());
 
         when(envioService.buscarPorCodigoRastreo("EXP-2026-1234")).thenReturn(respuesta);
 

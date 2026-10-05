@@ -60,6 +60,12 @@ public class EnvioController {
         return ResponseEntity.ok(envioService.buscarPorCodigoRastreo(codigo));
     }
 
+    // Lab 11: validador asíncrono del formulario Angular (numeroTracking).
+    @GetMapping("/check-tracking/{trackingNumber}")
+    public ResponseEntity<Boolean> checkTracking(@PathVariable String trackingNumber) {
+        return ResponseEntity.ok(envioService.existeCodigoRastreo(trackingNumber));
+    }
+
     // Lab 6: listado optimizado con JOIN FETCH (vehículo + conductor).
     @GetMapping("/optimizados")
     public ResponseEntity<List<EnvioResponseDTO>> getOptimizedShipments() {
